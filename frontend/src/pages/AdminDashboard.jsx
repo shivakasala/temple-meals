@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import Modal from '../components/Modal';
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
@@ -8,6 +9,7 @@ export default function AdminDashboard() {
   const [dateFilter, setDateFilter] = useState('');
   const [meals, setMeals] = useState([]);
   const [error, setError] = useState('');
+  const [showUserModal, setShowUserModal] = useState(false);
 
   const [userForm, setUserForm] = useState({
     username: '',
@@ -137,250 +139,327 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-slate-800">Admin Dashboard</h1>
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      <div>
+        <h1 className="text-3xl font-bold text-slate-800">📊 Admin Dashboard</h1>
+        <p className="text-slate-500 mt-1">Manage users, rates, meal requests, and payments</p>
+      </div>
 
-      <section className="bg-white shadow rounded p-4">
-        <h2 className="font-medium text-slate-700 mb-2">Rates</h2>
-        <form onSubmit={handleRatesSave} className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+      {error && (
+        <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      {/* Summary Stats Cards */}
+      {summary && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="card card-stat bg-blue-50">
+            <div className="stat-label">Total Collected</div>
+            <div className="stat-value text-blue-600">₹{summary.totalCollected}</div>
+          </div>
+          <div className="card card-stat bg-green-50">
+            <div className="stat-label">Total Users</div>
+            <div className="stat-value text-green-600">{users.length}</div>
+          </div>
+          <div className="card card-stat bg-orange-50">
+            <div className="stat-label">Pending Requests</div>
+            <div className="stat-value text-orange-600">{meals.filter(m => m.mealStatus === 'requested').length}</div>
+          </div>
+          <div className="card card-stat bg-purple-50">
+            <div className="stat-label">Unpaid Bills</div>
+            <div className="stat-value text-purple-600">{meals.filter(m => m.paymentStatus !== 'payment-approved').length}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Meal Rates Section */}
+      <section className="card">
+        <h2 className="text-lg font-semibold text-slate-800 mb-4">💰 Meal Rates</h2>
+        <form onSubmit={handleRatesSave} className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs text-slate-600 mb-1">Breakfast Rate</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">🥐 Breakfast Rate (₹)</label>
             <input
               type="number"
               min="0"
               name="breakfastRate"
               value={rateForm.breakfastRate ?? ''}
               onChange={handleRatesChange}
-              className="w-full border rounded px-2 py-1 text-sm"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-600 mb-1">Lunch Rate</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">🍛 Lunch Rate (₹)</label>
             <input
               type="number"
               min="0"
               name="lunchRate"
               value={rateForm.lunchRate ?? ''}
               onChange={handleRatesChange}
-              className="w-full border rounded px-2 py-1 text-sm"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-600 mb-1">Dinner Rate</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">🍲 Dinner Rate (₹)</label>
             <input
               type="number"
               min="0"
               name="dinnerRate"
               value={rateForm.dinnerRate ?? ''}
               onChange={handleRatesChange}
-              className="w-full border rounded px-2 py-1 text-sm"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
-          <button
-            type="submit"
-            className="mt-2 md:mt-0 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700"
-          >
-            Save Rates
-          </button>
-        </form>
-      </section>
-
-      <section className="bg-white shadow rounded p-4">
-        <h2 className="font-medium text-slate-700 mb-2">Create User</h2>
-        <form
-          onSubmit={handleUserCreate}
-          className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
-        >
-          <div>
-            <label className="block text-xs text-slate-600 mb-1">Username</label>
-            <input
-              type="text"
-              name="username"
-              value={userForm.username}
-              onChange={handleUserFormChange}
-              className="w-full border rounded px-2 py-1 text-sm"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-600 mb-1">Password</label>
-            <input
-              type="password"
-              name="password"
-              value={userForm.password}
-              onChange={handleUserFormChange}
-              className="w-full border rounded px-2 py-1 text-sm"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-600 mb-1">Temple / Department</label>
-            <input
-              type="text"
-              name="templeName"
-              value={userForm.templeName}
-              onChange={handleUserFormChange}
-              className="w-full border rounded px-2 py-1 text-sm"
-              required
-            />
-          </div>
-          <div className="flex gap-2 items-end">
-            <select
-              name="role"
-              value={userForm.role}
-              onChange={handleUserFormChange}
-              className="border rounded px-2 py-1 text-sm flex-1"
-            >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
+          <div className="flex items-end">
             <button
               type="submit"
-              className="py-2 px-3 rounded bg-slate-800 text-white text-sm hover:bg-slate-900"
+              className="w-full py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
             >
-              Add
+              ✓ Save Rates
             </button>
           </div>
         </form>
-
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-xs">
-            <thead>
-              <tr className="bg-slate-100">
-                <th className="px-2 py-1 text-left">Username</th>
-                <th className="px-2 py-1 text-left">Temple</th>
-                <th className="px-2 py-1 text-left">Role</th>
-                <th className="px-2 py-1">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u._id} className="border-t">
-                  <td className="px-2 py-1">{u.username}</td>
-                  <td className="px-2 py-1">{u.templeName}</td>
-                  <td className="px-2 py-1">{u.role}</td>
-                  <td className="px-2 py-1">
-                    <button
-                      className="px-2 py-0.5 text-xs rounded border border-red-500 text-red-600"
-                      onClick={() => handleDeleteUser(u._id)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </section>
 
-      <section className="bg-white shadow rounded p-4 space-y-3">
-        <div className="flex flex-wrap gap-3 items-center justify-between">
-          <h2 className="font-medium text-slate-700">Meal Requests</h2>
-          <div className="flex items-center gap-2 text-xs">
-            <label className="text-slate-600">Filter by date (YYYY-MM-DD)</label>
+      {/* Users Section */}
+      <section className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-800">👥 Users ({users.length})</h2>
+          <button
+            onClick={() => setShowUserModal(true)}
+            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
+          >
+            + Add User
+          </button>
+        </div>
+
+        {users.length === 0 ? (
+          <div className="text-center py-6 text-slate-500">
+            <p>No users yet. Create one to get started.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Username</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Temple</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Role</th>
+                  <th className="px-4 py-3 text-center font-semibold text-slate-700">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u._id} className="border-b border-slate-200 hover:bg-slate-50">
+                    <td className="px-4 py-3">{u.username}</td>
+                    <td className="px-4 py-3">{u.templeName}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${u.role === 'admin' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}`}>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => handleDeleteUser(u._id)}
+                        className="px-3 py-1 text-xs rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* Meal Requests Section */}
+      <section className="card">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <h2 className="text-lg font-semibold text-slate-800">🍽️ Meal Requests ({meals.length})</h2>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-600">Filter by date:</label>
             <input
-              type="text"
+              type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="border rounded px-2 py-1 text-xs"
-              placeholder="YYYY-MM-DD"
+              className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            {dateFilter && (
+              <button
+                onClick={() => setDateFilter('')}
+                className="px-3 py-2 text-sm text-slate-600 hover:text-slate-800"
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-xs">
-            <thead>
-              <tr className="bg-slate-100">
-                <th className="px-2 py-1 text-left">Date</th>
-                <th className="px-2 py-1 text-left">User</th>
-                <th className="px-2 py-1 text-right">B</th>
-                <th className="px-2 py-1 text-right">L</th>
-                <th className="px-2 py-1 text-right">D</th>
-                <th className="px-2 py-1 text-right">Bill</th>
-                <th className="px-2 py-1">Meal Status</th>
-                <th className="px-2 py-1">Payment Status</th>
-                <th className="px-2 py-1">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {meals.map((m) => (
-                <tr key={m._id} className="border-t">
-                  <td className="px-2 py-1">{m.date}</td>
-                  <td className="px-2 py-1">{m.userName}</td>
-                  <td className="px-2 py-1 text-right">{m.breakfast}</td>
-                  <td className="px-2 py-1 text-right">{m.lunch}</td>
-                  <td className="px-2 py-1 text-right">{m.dinner}</td>
-                  <td className="px-2 py-1 text-right">₹{m.billAmount}</td>
-                  <td className="px-2 py-1">
+
+        {meals.length === 0 ? (
+          <div className="text-center py-6 text-slate-500">
+            <p>No meal requests yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {meals.map((m) => (
+              <div key={m._id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+                  <div>
+                    <p className="font-semibold text-slate-800">{m.userName}</p>
+                    <p className="text-xs text-slate-500">{m.date}</p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${m.mealStatus === 'approved' ? 'bg-green-100 text-green-800' : m.mealStatus === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                      {m.mealStatus}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${m.paymentStatus === 'payment-approved' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+                      {m.paymentStatus}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-3 mb-3">
+                  <div className="bg-slate-100 p-2 rounded">
+                    <div className="text-xs text-slate-600">🥐 Breakfast</div>
+                    <div className="font-semibold">{m.breakfast}</div>
+                  </div>
+                  <div className="bg-slate-100 p-2 rounded">
+                    <div className="text-xs text-slate-600">🍛 Lunch</div>
+                    <div className="font-semibold">{m.lunch}</div>
+                  </div>
+                  <div className="bg-slate-100 p-2 rounded">
+                    <div className="text-xs text-slate-600">🍲 Dinner</div>
+                    <div className="font-semibold">{m.dinner}</div>
+                  </div>
+                  <div className="bg-blue-100 p-2 rounded">
+                    <div className="text-xs text-slate-600">💰 Bill</div>
+                    <div className="font-semibold text-blue-700">₹{m.billAmount}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-slate-600 mb-1 font-medium">Meal Status</label>
                     <select
                       value={m.mealStatus}
                       onChange={(e) => updateMealStatus(m._id, e.target.value)}
-                      className="border rounded px-1 py-0.5 text-xs"
+                      className="w-full border border-slate-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="requested">requested</option>
                       <option value="approved">approved</option>
                       <option value="rejected">rejected</option>
                     </select>
-                  </td>
-                  <td className="px-2 py-1">
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-600 mb-1 font-medium">Payment Status</label>
                     <select
                       value={m.paymentStatus}
                       onChange={(e) => updatePaymentStatus(m._id, e.target.value)}
-                      className="border rounded px-1 py-0.5 text-xs"
+                      className="w-full border border-slate-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="pending">pending</option>
                       <option value="paid">paid</option>
                       <option value="payment-approved">payment-approved</option>
                     </select>
-                  </td>
-                  <td className="px-2 py-1 text-xs text-slate-500">
-                    {new Date(m.createdAt).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="bg-white shadow rounded p-4">
-        <h2 className="font-medium text-slate-700 mb-2">Summary</h2>
-        {!summary ? (
-          <div className="text-xs text-slate-500">No data yet.</div>
-        ) : (
-          <div className="space-y-2 text-xs">
-            <div>Total amount collected (payment-approved): ₹{summary.totalCollected}</div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-xs">
-                <thead>
-                  <tr className="bg-slate-100">
-                    <th className="px-2 py-1 text-left">Date</th>
-                    <th className="px-2 py-1 text-right">Total Breakfast</th>
-                    <th className="px-2 py-1 text-right">Total Lunch</th>
-                    <th className="px-2 py-1 text-right">Total Dinner</th>
-                    <th className="px-2 py-1 text-right">Total Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summary.daily.map((d) => (
-                    <tr key={d._id} className="border-t">
-                      <td className="px-2 py-1">{d._id}</td>
-                      <td className="px-2 py-1 text-right">{d.totalBreakfast}</td>
-                      <td className="px-2 py-1 text-right">{d.totalLunch}</td>
-                      <td className="px-2 py-1 text-right">{d.totalDinner}</td>
-                      <td className="px-2 py-1 text-right">₹{d.totalAmount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>
+
+      {/* Daily Summary Section */}
+      {summary && summary.daily?.length > 0 && (
+        <section className="card">
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">📈 Daily Summary</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Date</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700">🥐 Breakfast</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700">🍛 Lunch</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700">🍲 Dinner</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700">💰 Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.daily.map((d) => (
+                  <tr key={d._id} className="border-b border-slate-200 hover:bg-slate-50">
+                    <td className="px-4 py-3 font-medium">{d._id}</td>
+                    <td className="px-4 py-3 text-right">{d.totalBreakfast}</td>
+                    <td className="px-4 py-3 text-right">{d.totalLunch}</td>
+                    <td className="px-4 py-3 text-right">{d.totalDinner}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-blue-600">₹{d.totalAmount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* User Modal */}
+      <Modal
+        isOpen={showUserModal}
+        title="➕ Create New User"
+        onClose={() => setShowUserModal(false)}
+        onSubmit={handleUserCreate}
+        submitText="Create"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
+            <input
+              type="text"
+              name="username"
+              value={userForm.username}
+              onChange={handleUserFormChange}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <input
+              type="password"
+              name="password"
+              value={userForm.password}
+              onChange={handleUserFormChange}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Temple / Department</label>
+            <input
+              type="text"
+              name="templeName"
+              value={userForm.templeName}
+              onChange={handleUserFormChange}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+            <select
+              name="role"
+              value={userForm.role}
+              onChange={handleUserFormChange}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -16,30 +16,33 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-800">Temple Meals</span>
+      <header className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+              🏛
+            </div>
+            <span className="font-bold text-slate-800 text-lg">Temple Meals</span>
           </div>
-          <nav className="flex items-center gap-4 text-sm">
+          <nav className="flex items-center gap-6 text-sm">
             {auth && auth.user?.role === 'admin' && (
-              <Link to="/admin" className="hover:text-blue-600">
-                Admin Dashboard
+              <Link to="/admin" className="text-slate-600 hover:text-blue-600 font-medium transition">
+                📊 Admin
               </Link>
             )}
             {auth && auth.user?.role === 'user' && (
-              <Link to="/user" className="hover:text-blue-600">
-                My Requests
+              <Link to="/user" className="text-slate-600 hover:text-blue-600 font-medium transition">
+                🍽️ Meals
               </Link>
             )}
             {auth ? (
               <>
-                <span className="text-slate-500">
-                  {auth.user.username} ({auth.user.role})
+                <span className="text-slate-500 text-xs">
+                  👤 {auth.user.username}
                 </span>
                 <button
                   onClick={handleLogout}
-                  className="px-3 py-1 rounded bg-slate-800 text-white text-xs hover:bg-slate-900"
+                  className="px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-900 transition"
                 >
                   Logout
                 </button>
@@ -47,7 +50,7 @@ const Layout = ({ children }) => {
             ) : (
               <Link
                 to="/login"
-                className="px-3 py-1 rounded bg-slate-800 text-white text-xs hover:bg-slate-900"
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
               >
                 Login
               </Link>
@@ -55,9 +58,14 @@ const Layout = ({ children }) => {
           </nav>
         </div>
       </header>
-      <main className="flex-1">
-        <div className="max-w-5xl mx-auto px-4 py-6">{children}</div>
-      </main>
+
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">{children}</main>
+
+      <footer className="bg-white border-t border-slate-200 mt-12">
+        <div className="max-w-6xl mx-auto px-4 py-4 text-center text-xs text-slate-500">
+          © 2026 Temple Meals — {new Date().toLocaleDateString()}
+        </div>
+      </footer>
     </div>
   );
 };
