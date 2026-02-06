@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getAuthToken } from './auth';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const baseURL = 'https://temple-meals-api.onrender.com';
 
 const api = axios.create({
   baseURL: `${baseURL}/api`
