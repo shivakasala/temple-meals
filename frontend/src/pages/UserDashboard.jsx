@@ -21,6 +21,7 @@ export default function UserDashboard() {
   const [editingMeal, setEditingMeal] = useState(null);
   const [editForm, setEditForm] = useState({ morningPrasadam: 0, eveningPrasadam: 0 });
   const [dateRangeDisplay, setDateRangeDisplay] = useState([]);
+  const [selectedDays, setSelectedDays] = useState({});
 
   const loadRates = async () => {
     try {
@@ -83,9 +84,20 @@ export default function UserDashboard() {
       const fromDate = name === 'fromDate' ? value : form.fromDate;
       const toDate = name === 'toDate' ? value : form.toDate;
       if (fromDate && toDate) {
-        setDateRangeDisplay(generateDateRange(fromDate, toDate));
+        const range = generateDateRange(fromDate, toDate);
+        setDateRangeDisplay(range);
+        // Auto-select all days
+        const newSelected = {};
+        range.forEach((item) => {
+          newSelected[item.date] = true;
+        });
+        setSelectedDays(newSelected);
       }
     }
+  };
+
+  const handleDayToggle = (date) => {
+    setSelectedDays((prev) => ({ ...prev, [date]: !prev[date] }));
   };
 
   const handleSubmit = async (e) => {
@@ -97,8 +109,19 @@ export default function UserDashboard() {
       return;
     }
 
+    const selectedCount = Object.values(selectedDays).filter(Boolean).length;
+    if (selectedCount === 0) {
+      setError('Please select at least one day');
+      return;
+    }
+
     setSubmitting(true);
     try {
+      // Get selected dates and filter to only selected ones
+      const selectedDatesArray = dateRangeDisplay
+        .filter((item) => selectedDays[item.date])
+        .map((item) => item.date);
+
       await api.post('/meals', {
         name: form.name,
         userPhone: form.userPhone,
@@ -106,8 +129,9 @@ export default function UserDashboard() {
         morningPrasadam: form.morningPrasadam,
         eveningPrasadam: form.eveningPrasadam,
         category: form.category,
-        fromDate: form.fromDate,
-        toDate: form.toDate
+        fromDate: selectedDatesArray[0],
+        toDate: selectedDatesArray[selectedDatesArray.length - 1],
+        selectedDates: selectedDatesArray
       });
       setForm({ 
         name: '',
@@ -120,6 +144,7 @@ export default function UserDashboard() {
         toDate: ''
       });
       setDateRangeDisplay([]);
+      setSelectedDays({});
       await loadMine();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to submit meal request');
@@ -168,7 +193,13 @@ export default function UserDashboard() {
     const evening = rates.eveningRate || 0;
     const dayCost = form.morningPrasadam * morning + form.eveningPrasadam * evening;
     
-    // If date range is selected, multiply by number of days
+    // Count only selected days
+    if (Object.keys(selectedDays).length > 0) {
+      const selectedCount = Object.values(selectedDays).filter(Boolean).length;
+      return dayCost * selectedCount;
+    }
+    
+    // Fallback: if date range is selected but no checkboxes (shouldn't happen), multiply by number of days
     if (form.fromDate && form.toDate) {
       const fromDate = new Date(form.fromDate);
       const toDate = new Date(form.toDate);
@@ -380,18 +411,25 @@ export default function UserDashboard() {
                 </div>
               </div>
 
-              {/* Date Range Display */}
+              {/* Date Range Display with Checkboxes */}
               {dateRangeDisplay.length > 0 && (
                 <div className="p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg border border-emerald-300">
                   <h4 className="text-sm font-semibold text-emerald-900 mb-3 flex items-center gap-2">
-                    <span>📅</span> Booking Summary ({dateRangeDisplay.length} days)
+                    <span>📅</span> Select Booking Days ({Object.values(selectedDays).filter(Boolean).length} of {dateRangeDisplay.length} selected)
                   </h4>
-                  <div className="flex flex-col md:flex-row flex-wrap gap-2">
+                  <div className="flex flex-col gap-2">
                     {dateRangeDisplay.map((item, idx) => (
-                      <div key={idx} className="flex-1 min-w-[200px] text-xs text-emerald-800 bg-white bg-opacity-60 px-3 py-2 rounded border border-emerald-200">
-                        <div className="font-medium">{item.morning}</div>
-                        <div className="font-medium">{item.evening}</div>
-                      </div>
+                      <label key={idx} className="flex items-center gap-3 p-2 rounded hover:bg-emerald-100 cursor-pointer transition">
+                        <input
+                          type="checkbox"
+                          checked={selectedDays[item.date] || false}
+                          onChange={() => handleDayToggle(item.date)}
+                          className="w-4 h-4 cursor-pointer accent-emerald-600"
+                        />
+                        <span className="text-xs text-emerald-800">
+                          <span className="font-medium">{item.morning}</span> & <span className="font-medium">{item.evening}</span>
+                        </span>
+                      </label>
                     ))}
                   </div>
                 </div>
