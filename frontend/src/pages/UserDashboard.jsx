@@ -406,121 +406,123 @@ export default function UserDashboard() {
               {dateRangeDisplay.length > 0 && (
                 <div className="p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg border border-emerald-300">
                   <h4 className="text-sm font-semibold text-emerald-900 mb-4 flex items-center gap-2">
-                    <span>📅</span> Select Prasadam for Each Day ({Object.values(selectedDays).filter(Boolean).length} of {dateRangeDisplay.length} days)
+                    <span>📅</span> Select Meals for Each Day
                   </h4>
                   <div className="flex flex-col gap-4">
                     {dateRangeDisplay.map((item) => {
                       const date = item.date;
                       const isSelected = selectedDays[date];
                       return (
-                        <div key={date} className="border border-emerald-200 rounded-lg p-4 bg-white">
-                          <div className="flex items-center mb-4">
+                        <div key={date} className={`border rounded-lg p-4 transition ${isSelected ? 'border-emerald-300 bg-white' : 'border-slate-200 bg-slate-50'}`}>
+                          <div className="flex items-center mb-4 pb-3 border-b">
                             <input
                               type="checkbox"
                               checked={isSelected || false}
                               onChange={() => handleDayToggle(date)}
                               className="w-5 h-5 cursor-pointer accent-emerald-600 mr-3"
                             />
-                            <span className="font-semibold text-emerald-900">{date}</span>
+                            <span className={`font-semibold ${isSelected ? 'text-emerald-900' : 'text-slate-600'}`}>{date}</span>
                           </div>
                           
-                          {isSelected && (
-                            <div className="ml-8 space-y-3">
-                              {/* 9:00 AM Prasadam */}
-                              <div>
-                                <label className="text-sm font-medium text-emerald-800 mb-2 block">9:00 AM Prasadam</label>
-                                <div className="flex gap-3">
-                                  {[1, 2, 3, 4].map((qty) => (
-                                    <label key={`${date}-morning-${qty}`} className="flex items-center gap-2 cursor-pointer">
-                                      <input
-                                        type="radio"
-                                        name={`morning-${date}`}
-                                        value={qty}
-                                        checked={(form.dayQuantities[date]?.morning || 0) === qty}
-                                        onChange={() => {
-                                          setForm((f) => ({
-                                            ...f,
-                                            dayQuantities: {
-                                              ...f.dayQuantities,
-                                              [date]: { ...f.dayQuantities[date], morning: qty }
-                                            }
-                                          }));
-                                        }}
-                                        className="w-4 h-4 accent-emerald-600"
-                                      />
-                                      <span className="text-sm text-emerald-700">{qty}</span>
-                                    </label>
-                                  ))}
-                                  <label className="flex items-center gap-2 cursor-pointer">
+                          <div className={`ml-8 space-y-3 ${!isSelected ? 'opacity-60 pointer-events-none' : ''}`}>
+                            {/* 9:00 AM Prasadam */}
+                            <div>
+                              <label className={`text-sm font-medium mb-2 block ${isSelected ? 'text-emerald-800' : 'text-slate-600'}`}>9:00 AM Prasadam</label>
+                              <div className="flex gap-3">
+                                {[1, 2, 3, 4].map((qty) => (
+                                  <label key={`${date}-morning-${qty}`} className="flex items-center gap-2 cursor-pointer">
                                     <input
                                       type="radio"
                                       name={`morning-${date}`}
-                                      value={0}
-                                      checked={(form.dayQuantities[date]?.morning || 0) === 0}
+                                      value={qty}
+                                      checked={(form.dayQuantities[date]?.morning || 0) === qty}
                                       onChange={() => {
                                         setForm((f) => ({
                                           ...f,
                                           dayQuantities: {
                                             ...f.dayQuantities,
-                                            [date]: { ...f.dayQuantities[date], morning: 0 }
+                                            [date]: { ...f.dayQuantities[date], morning: qty }
                                           }
                                         }));
                                       }}
                                       className="w-4 h-4 accent-emerald-600"
+                                      disabled={!isSelected}
                                     />
-                                    <span className="text-sm text-emerald-700">None</span>
+                                    <span className={`text-sm ${isSelected ? 'text-emerald-700' : 'text-slate-500'}`}>{qty}</span>
                                   </label>
-                                </div>
+                                ))}
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="radio"
+                                    name={`morning-${date}`}
+                                    value={0}
+                                    checked={(form.dayQuantities[date]?.morning || 0) === 0}
+                                    onChange={() => {
+                                      setForm((f) => ({
+                                        ...f,
+                                        dayQuantities: {
+                                          ...f.dayQuantities,
+                                          [date]: { ...f.dayQuantities[date], morning: 0 }
+                                        }
+                                      }));
+                                    }}
+                                    className="w-4 h-4 accent-emerald-600"
+                                    disabled={!isSelected}
+                                  />
+                                  <span className={`text-sm ${isSelected ? 'text-emerald-700' : 'text-slate-500'}`}>None</span>
+                                </label>
                               </div>
+                            </div>
 
-                              {/* 4:30 PM Prasadam */}
-                              <div>
-                                <label className="text-sm font-medium text-emerald-800 mb-2 block">4:30 PM Prasadam</label>
-                                <div className="flex gap-3">
-                                  {[1, 2, 3, 4].map((qty) => (
-                                    <label key={`${date}-evening-${qty}`} className="flex items-center gap-2 cursor-pointer">
-                                      <input
-                                        type="radio"
-                                        name={`evening-${date}`}
-                                        value={qty}
-                                        checked={(form.dayQuantities[date]?.evening || 0) === qty}
-                                        onChange={() => {
-                                          setForm((f) => ({
-                                            ...f,
-                                            dayQuantities: {
-                                              ...f.dayQuantities,
-                                              [date]: { ...f.dayQuantities[date], evening: qty }
-                                            }
-                                          }));
-                                        }}
-                                        className="w-4 h-4 accent-emerald-600"
-                                      />
-                                      <span className="text-sm text-emerald-700">{qty}</span>
-                                    </label>
-                                  ))}
-                                  <label className="flex items-center gap-2 cursor-pointer">
+                            {/* 4:30 PM Prasadam */}
+                            <div>
+                              <label className={`text-sm font-medium mb-2 block ${isSelected ? 'text-emerald-800' : 'text-slate-600'}`}>4:30 PM Prasadam</label>
+                              <div className="flex gap-3">
+                                {[1, 2, 3, 4].map((qty) => (
+                                  <label key={`${date}-evening-${qty}`} className="flex items-center gap-2 cursor-pointer">
                                     <input
                                       type="radio"
                                       name={`evening-${date}`}
-                                      value={0}
-                                      checked={(form.dayQuantities[date]?.evening || 0) === 0}
+                                      value={qty}
+                                      checked={(form.dayQuantities[date]?.evening || 0) === qty}
                                       onChange={() => {
                                         setForm((f) => ({
                                           ...f,
                                           dayQuantities: {
                                             ...f.dayQuantities,
-                                            [date]: { ...f.dayQuantities[date], evening: 0 }
+                                            [date]: { ...f.dayQuantities[date], evening: qty }
                                           }
                                         }));
                                       }}
                                       className="w-4 h-4 accent-emerald-600"
+                                      disabled={!isSelected}
                                     />
-                                    <span className="text-sm text-emerald-700">None</span>
+                                    <span className={`text-sm ${isSelected ? 'text-emerald-700' : 'text-slate-500'}`}>{qty}</span>
                                   </label>
-                                </div>
+                                ))}
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="radio"
+                                    name={`evening-${date}`}
+                                    value={0}
+                                    checked={(form.dayQuantities[date]?.evening || 0) === 0}
+                                    onChange={() => {
+                                      setForm((f) => ({
+                                        ...f,
+                                        dayQuantities: {
+                                          ...f.dayQuantities,
+                                          [date]: { ...f.dayQuantities[date], evening: 0 }
+                                        }
+                                      }));
+                                    }}
+                                    className="w-4 h-4 accent-emerald-600"
+                                    disabled={!isSelected}
+                                  />
+                                  <span className={`text-sm ${isSelected ? 'text-emerald-700' : 'text-slate-500'}`}>None</span>
+                                </label>
                               </div>
                             </div>
-                          )}
+                          </div>
                         </div>
                       );
                     })}
