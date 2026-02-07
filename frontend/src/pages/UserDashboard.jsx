@@ -192,90 +192,118 @@ export default function UserDashboard() {
       )}
 
       {/* Submit New Request Card */}
-      <section className="card">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">📝 Submit Meal Request</h2>
+      <section className="card shadow-lg">
+        <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-200">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">📋 Book Prasadam</h2>
+            <p className="text-sm text-slate-500 mt-1">Fill in your details and select your booking period</p>
+          </div>
+        </div>
+
         {loadingRates ? (
-          <div className="flex items-center gap-2 text-slate-500">
-            <span className="spinner"></span> Loading rates...
+          <div className="flex items-center justify-center py-12">
+            <span className="spinner"></span>
+            <span className="ml-2 text-slate-600">Loading rates...</span>
           </div>
         ) : !rates ? (
-          <div className="p-3 rounded-lg bg-orange-50 border border-orange-200">
-            <p className="text-sm text-orange-700">⚠️ Rates not yet configured by admin</p>
+          <div className="p-4 rounded-lg bg-amber-50 border-l-4 border-amber-400">
+            <p className="text-sm text-amber-900 font-medium">⚠️ Rates not yet configured by admin</p>
           </div>
         ) : (
           <>
-            <div className="bg-blue-50 p-3 rounded-lg mb-4 text-sm text-slate-700">
-              <strong>Current Prasadam Rates:</strong><br />
-              ⏰ 9:00 AM: ₹{rates.morningRate} | ⏰ 4:30 PM: ₹{rates.eveningRate}
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">💰</span>
+                <div>
+                  <p className="text-xs font-semibold text-blue-900 uppercase tracking-wide">Current Rates</p>
+                  <div className="mt-2 grid grid-cols-2 gap-4">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm text-blue-700">9:00 AM:</span>
+                      <span className="text-lg font-bold text-blue-900">₹{rates.morningRate}</span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm text-blue-700">4:30 PM:</span>
+                      <span className="text-lg font-bold text-blue-900">₹{rates.eveningRate}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
+
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* Personal Info Section */}
-              <div className="bg-slate-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-slate-800 mb-3">👤 Personal Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
+                  <span className="inline-block w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm mr-2">1</span>
+                  Personal Details
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-12">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
                     <input
                       type="text"
                       name="name"
-                      placeholder="Your name"
+                      placeholder="Your full name"
                       value={form.name}
                       onChange={handleChange}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:bg-blue-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Phone Number</label>
                     <input
                       type="tel"
                       name="userPhone"
-                      placeholder="10-digit number"
+                      placeholder="+91 XXXXX XXXXX"
                       value={form.userPhone}
                       onChange={handleChange}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:bg-blue-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Temple/Department</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Department/Location</label>
                     <input
                       type="text"
                       name="userTemple"
-                      placeholder="e.g., Main Hall"
+                      placeholder="e.g., Main Hall, Kitchen"
                       value={form.userTemple}
                       onChange={handleChange}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:bg-blue-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
                       required
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Date Range Section */}
-              <div className="bg-slate-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-slate-800 mb-3">📅 Booking Period</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Booking Period Section */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
+                  <span className="inline-block w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm mr-2">2</span>
+                  Booking Period
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-12">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">From Date</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Start Date</label>
                     <input
                       type="date"
                       name="fromDate"
                       value={form.fromDate}
                       onChange={handleDateChange}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:bg-blue-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">To Date</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">End Date</label>
                     <input
                       type="date"
                       name="toDate"
                       value={form.toDate}
                       onChange={handleDateChange}
                       min={form.fromDate}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:bg-blue-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
                       required
                     />
                   </div>
@@ -283,90 +311,123 @@ export default function UserDashboard() {
               </div>
 
               {/* Category Section */}
-              <div className="bg-slate-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-slate-800 mb-3">🏷️ Prasadam Category</h3>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
+                  <span className="inline-block w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm mr-2">3</span>
+                  Prasadam Category
+                </label>
+                <div className="flex gap-4 pl-12">
+                  <label className="flex items-center gap-3 px-4 py-2.5 border border-slate-300 rounded-lg cursor-pointer hover:bg-blue-50 transition" style={{ flex: 1 }}>
                     <input
                       type="radio"
                       name="category"
                       value="IOS"
                       checked={form.category === 'IOS'}
                       onChange={handleChange}
-                      className="w-4 h-4"
+                      className="w-5 h-5 text-blue-600"
                     />
-                    <span className="text-sm text-slate-700">Individual (IOS)</span>
+                    <span className="text-sm font-medium text-slate-700">Individual</span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className="flex items-center gap-3 px-4 py-2.5 border border-slate-300 rounded-lg cursor-pointer hover:bg-blue-50 transition" style={{ flex: 1 }}>
                     <input
                       type="radio"
                       name="category"
                       value="COMMUNITY"
                       checked={form.category === 'COMMUNITY'}
                       onChange={handleChange}
-                      className="w-4 h-4"
+                      className="w-5 h-5 text-blue-600"
                     />
-                    <span className="text-sm text-slate-700">Community</span>
+                    <span className="text-sm font-medium text-slate-700">Community</span>
                   </label>
                 </div>
               </div>
 
-              {/* Meal Count Section */}
-              <div className="bg-slate-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-slate-800 mb-3">🍽️ Prasadam Count</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">⏰ 9:00 AM Prasadam</label>
-                    <input
-                      type="number"
-                      min="0"
-                      name="morningPrasadam"
-                      value={form.morningPrasadam}
-                      onChange={handleChange}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+              {/* Prasadam Count Section */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
+                  <span className="inline-block w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm mr-2">4</span>
+                  Prasadam Quantity
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-12">
+                  <div className="relative">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">9:00 AM Prasadam</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        name="morningPrasadam"
+                        value={form.morningPrasadam}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:bg-blue-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                      />
+                      <span className="absolute right-4 top-10 text-slate-500 text-sm">portions</span>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">⏰ 4:30 PM Prasadam</label>
-                    <input
-                      type="number"
-                      min="0"
-                      name="eveningPrasadam"
-                      value={form.eveningPrasadam}
-                      onChange={handleChange}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                  <div className="relative">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">4:30 PM Prasadam</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        name="eveningPrasadam"
+                        value={form.eveningPrasadam}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:bg-blue-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                      />
+                      <span className="absolute right-4 top-10 text-slate-500 text-sm">portions</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Date Range Display */}
               {dateRangeDisplay.length > 0 && (
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <h3 className="font-semibold text-slate-800 mb-2">📋 Prasadam Schedule</h3>
+                <div className="p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg border border-emerald-300">
+                  <h4 className="text-sm font-semibold text-emerald-900 mb-3 flex items-center gap-2">
+                    <span>📅</span> Booking Summary ({dateRangeDisplay.length} days)
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {dateRangeDisplay.map((item, idx) => (
-                      <div key={idx} className="text-sm text-slate-700">
-                        <div>✓ {item.morning}</div>
-                        <div>✓ {item.evening}</div>
+                      <div key={idx} className="text-xs text-emerald-800 bg-white bg-opacity-60 px-3 py-2 rounded border border-emerald-200">
+                        <div className="font-medium">{item.morning}</div>
+                        <div className="font-medium">{item.evening}</div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="flex items-center justify-between bg-slate-100 p-3 rounded-lg">
-                <span className="font-semibold text-slate-800">Total Cost:</span>
-                <span className="text-2xl font-bold text-blue-600">₹{calculateCost()}</span>
+              {/* Total Cost Summary */}
+              <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg border-2 border-blue-300">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-slate-700">Total Amount:</span>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-600 mb-1">Per day × No. of days</p>
+                    <p className="text-3xl font-bold text-blue-700">₹{calculateCost()}</p>
+                  </div>
+                </div>
               </div>
 
+              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={submitting || (form.morningPrasadam + form.eveningPrasadam === 0) || !form.fromDate || !form.toDate}
-                className="w-full py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+                className="w-full py-3 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition transform hover:scale-105 active:scale-95 shadow-lg"
               >
-                {submitting ? '⏳ Submitting...' : '✓ Submit Request'}
+                {submitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="spinner"></span> Processing...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <span>✓</span> Confirm Booking
+                  </span>
+                )}
               </button>
+
+              <p className="text-xs text-center text-slate-500 mt-4">
+                By submitting, you agree to the booking terms and conditions
+              </p>
             </form>
           </>
         )}
