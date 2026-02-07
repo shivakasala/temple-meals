@@ -237,8 +237,8 @@ export default function UserDashboard() {
                   <span className="inline-block w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm mr-2">1</span>
                   Personal Details
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-12">
-                  <div>
+                <div className="flex flex-col md:flex-row gap-4 pl-12">
+                  <div className="flex-1">
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
                     <input
                       type="text"
@@ -250,7 +250,7 @@ export default function UserDashboard() {
                       required
                     />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Phone Number</label>
                     <input
                       type="tel"
@@ -262,7 +262,7 @@ export default function UserDashboard() {
                       required
                     />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Department/Location</label>
                     <input
                       type="text"
@@ -283,8 +283,8 @@ export default function UserDashboard() {
                   <span className="inline-block w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm mr-2">2</span>
                   Booking Period
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-12">
-                  <div>
+                <div className="flex flex-col md:flex-row gap-4 pl-12">
+                  <div className="flex-1">
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Start Date</label>
                     <input
                       type="date"
@@ -295,7 +295,7 @@ export default function UserDashboard() {
                       required
                     />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <label className="block text-sm font-semibold text-slate-700 mb-2">End Date</label>
                     <input
                       type="date"
@@ -348,8 +348,8 @@ export default function UserDashboard() {
                   <span className="inline-block w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm mr-2">4</span>
                   Prasadam Quantity
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-12">
-                  <div className="relative">
+                <div className="flex flex-col md:flex-row gap-4 pl-12">
+                  <div className="flex-1 relative">
                     <label className="block text-sm font-semibold text-slate-700 mb-2">9:00 AM Prasadam</label>
                     <div className="relative">
                       <input
@@ -363,7 +363,7 @@ export default function UserDashboard() {
                       <span className="absolute right-4 top-10 text-slate-500 text-sm">portions</span>
                     </div>
                   </div>
-                  <div className="relative">
+                  <div className="flex-1 relative">
                     <label className="block text-sm font-semibold text-slate-700 mb-2">4:30 PM Prasadam</label>
                     <div className="relative">
                       <input
@@ -386,9 +386,9 @@ export default function UserDashboard() {
                   <h4 className="text-sm font-semibold text-emerald-900 mb-3 flex items-center gap-2">
                     <span>📅</span> Booking Summary ({dateRangeDisplay.length} days)
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div className="flex flex-col md:flex-row flex-wrap gap-2">
                     {dateRangeDisplay.map((item, idx) => (
-                      <div key={idx} className="text-xs text-emerald-800 bg-white bg-opacity-60 px-3 py-2 rounded border border-emerald-200">
+                      <div key={idx} className="flex-1 min-w-[200px] text-xs text-emerald-800 bg-white bg-opacity-60 px-3 py-2 rounded border border-emerald-200">
                         <div className="font-medium">{item.morning}</div>
                         <div className="font-medium">{item.evening}</div>
                       </div>
