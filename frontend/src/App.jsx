@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import UserDashboard from './pages/UserDashboard.jsx';
+import RequestedMeals from './pages/RequestedMeals.jsx';
 import { getStoredAuth, clearAuth } from './services/auth';
 
 const Layout = ({ children }) => {
@@ -31,9 +32,14 @@ const Layout = ({ children }) => {
               </Link>
             )}
             {auth && auth.user?.role === 'user' && (
-              <Link to="/user" className="text-slate-600 hover:text-blue-600 font-medium transition">
-                🍽️ Meals
-              </Link>
+              <>
+                <Link to="/user" className="text-slate-600 hover:text-blue-600 font-medium transition">
+                  🍽️ Book Meal
+                </Link>
+                <Link to="/meals" className="text-slate-600 hover:text-blue-600 font-medium transition">
+                  📋 My Meals
+                </Link>
+              </>
             )}
             {auth ? (
               <>
@@ -95,6 +101,14 @@ export default function App() {
           element={
             <ProtectedRoute role="user">
               <UserDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/meals"
+          element={
+            <ProtectedRoute role="user">
+              <RequestedMeals />
             </ProtectedRoute>
           }
         />

@@ -448,6 +448,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       </Modal>
+      </div>
     </div>
   );
 }

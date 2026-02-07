@@ -487,6 +487,7 @@ export default function UserDashboard() {
             </form>
           </>
         )}
+        </div>
       </section>
 
       {/* Recent Requests */}
@@ -582,6 +583,7 @@ export default function UserDashboard() {
           </div>
         </div>
       </Modal>
+      </div>
     </div>
   );
 }
