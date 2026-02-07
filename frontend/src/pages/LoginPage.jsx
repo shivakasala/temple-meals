@@ -31,8 +31,8 @@ export default function LoginPage() {
       <div className="card max-w-md w-full">
         <div className="text-center mb-6">
           <div className="text-5xl mb-3">🏛️</div>
-          <h1 className="text-2xl font-bold text-slate-800">Temple Meals</h1>
-          <p className="text-slate-500 text-sm mt-1">Meal request management system</p>
+          <h1 className="text-2xl font-bold text-slate-800">Online Temple Prasadam Portal</h1>
+          <p className="text-slate-500 text-sm mt-1">Prasadam booking & management system</p>
         </div>
 
         {error && (

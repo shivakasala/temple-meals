@@ -23,7 +23,7 @@ const Layout = ({ children }) => {
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
               🏛
             </div>
-            <span className="font-bold text-slate-800 text-lg">Temple Meals</span>
+            <span className="font-bold text-slate-800 text-lg">Prasadam Portal</span>
           </div>
           <nav className="flex items-center gap-6 text-sm">
             {auth && auth.user?.role === 'admin' && (
