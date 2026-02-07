@@ -113,23 +113,20 @@ export default function UserDashboard() {
       return;
     }
 
-    const selectedCount = Object.values(selectedDays).filter(Boolean).length;
-    if (selectedCount === 0) {
-      setError('Please select at least one day');
+    // Check if at least one meal is selected
+    const hasMeals = Object.values(form.dayQuantities || {}).some(
+      (day) => (day?.morning || 0) > 0 || (day?.evening || 0) > 0
+    );
+    if (!hasMeals) {
+      setError('Please select at least one meal');
       return;
     }
 
     setSubmitting(true);
     try {
-      // Get selected dates array
-      const selectedDatesArray = dateRangeDisplay
-        .filter((item) => selectedDays[item.date])
-        .map((item) => item.date);
-
       // Create records for each selected day and time slot
       const records = [];
-      selectedDatesArray.forEach((date) => {
-        const quantities = form.dayQuantities[date];
+      Object.entries(form.dayQuantities).forEach(([date, quantities]) => {
         if (quantities?.morning > 0) {
           records.push({
             name: form.name,
@@ -215,27 +212,17 @@ export default function UserDashboard() {
       alert(err.response?.data?.message || 'Failed to mark payment');
     }
   };
-
   const calculateCost = () => {
     if (!rates) return 0;
     const morning = rates.morningRate || 0;
     const evening = rates.eveningRate || 0;
-    const dayCost = form.morningPrasadam * morning + form.eveningPrasadam * evening;
     
-    // Count only selected days
-    if (Object.keys(selectedDays).length > 0) {
-      const selectedCount = Object.values(selectedDays).filter(Boolean).length;
-      return dayCost * selectedCount;
-    }
+    let totalCost = 0;
+    Object.values(form.dayQuantities || {}).forEach((day) => {
+      totalCost += ((day?.morning || 0) * morning) + ((day?.evening || 0) * evening);
+    });
     
-    // Fallback: if date range is selected but no checkboxes (shouldn't happen), multiply by number of days
-    if (form.fromDate && form.toDate) {
-      const fromDate = new Date(form.fromDate);
-      const toDate = new Date(form.toDate);
-      const days = Math.floor((toDate - fromDate) / (1000 * 60 * 60 * 24)) + 1;
-      return dayCost * days;
-    }
-    return dayCost;
+    return totalCost;
   };
 
   return (
@@ -408,120 +395,49 @@ export default function UserDashboard() {
                   <h4 className="text-sm font-semibold text-emerald-900 mb-4 flex items-center gap-2">
                     <span>📅</span> Select Meals for Each Day
                   </h4>
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3">
                     {dateRangeDisplay.map((item) => {
                       const date = item.date;
-                      const isSelected = selectedDays[date];
                       return (
-                        <div key={date} className={`border rounded-lg p-4 transition ${isSelected ? 'border-emerald-300 bg-white' : 'border-slate-200 bg-slate-50'}`}>
-                          <div className="flex items-center mb-4 pb-3 border-b">
-                            <input
-                              type="checkbox"
-                              checked={isSelected || false}
-                              onChange={() => handleDayToggle(date)}
-                              className="w-5 h-5 cursor-pointer accent-emerald-600 mr-3"
-                            />
-                            <span className={`font-semibold ${isSelected ? 'text-emerald-900' : 'text-slate-600'}`}>{date}</span>
-                          </div>
-                          
-                          <div className={`ml-8 space-y-3 ${!isSelected ? 'opacity-60 pointer-events-none' : ''}`}>
-                            {/* 9:00 AM Prasadam */}
-                            <div>
-                              <label className={`text-sm font-medium mb-2 block ${isSelected ? 'text-emerald-800' : 'text-slate-600'}`}>9:00 AM Prasadam</label>
-                              <div className="flex gap-3">
-                                {[1, 2, 3, 4].map((qty) => (
-                                  <label key={`${date}-morning-${qty}`} className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                      type="radio"
-                                      name={`morning-${date}`}
-                                      value={qty}
-                                      checked={(form.dayQuantities[date]?.morning || 0) === qty}
-                                      onChange={() => {
-                                        setForm((f) => ({
-                                          ...f,
-                                          dayQuantities: {
-                                            ...f.dayQuantities,
-                                            [date]: { ...f.dayQuantities[date], morning: qty }
-                                          }
-                                        }));
-                                      }}
-                                      className="w-4 h-4 accent-emerald-600"
-                                      disabled={!isSelected}
-                                    />
-                                    <span className={`text-sm ${isSelected ? 'text-emerald-700' : 'text-slate-500'}`}>{qty}</span>
-                                  </label>
-                                ))}
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name={`morning-${date}`}
-                                    value={0}
-                                    checked={(form.dayQuantities[date]?.morning || 0) === 0}
-                                    onChange={() => {
-                                      setForm((f) => ({
-                                        ...f,
-                                        dayQuantities: {
-                                          ...f.dayQuantities,
-                                          [date]: { ...f.dayQuantities[date], morning: 0 }
-                                        }
-                                      }));
-                                    }}
-                                    className="w-4 h-4 accent-emerald-600"
-                                    disabled={!isSelected}
-                                  />
-                                  <span className={`text-sm ${isSelected ? 'text-emerald-700' : 'text-slate-500'}`}>None</span>
-                                </label>
-                              </div>
-                            </div>
-
-                            {/* 4:30 PM Prasadam */}
-                            <div>
-                              <label className={`text-sm font-medium mb-2 block ${isSelected ? 'text-emerald-800' : 'text-slate-600'}`}>4:30 PM Prasadam</label>
-                              <div className="flex gap-3">
-                                {[1, 2, 3, 4].map((qty) => (
-                                  <label key={`${date}-evening-${qty}`} className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                      type="radio"
-                                      name={`evening-${date}`}
-                                      value={qty}
-                                      checked={(form.dayQuantities[date]?.evening || 0) === qty}
-                                      onChange={() => {
-                                        setForm((f) => ({
-                                          ...f,
-                                          dayQuantities: {
-                                            ...f.dayQuantities,
-                                            [date]: { ...f.dayQuantities[date], evening: qty }
-                                          }
-                                        }));
-                                      }}
-                                      className="w-4 h-4 accent-emerald-600"
-                                      disabled={!isSelected}
-                                    />
-                                    <span className={`text-sm ${isSelected ? 'text-emerald-700' : 'text-slate-500'}`}>{qty}</span>
-                                  </label>
-                                ))}
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name={`evening-${date}`}
-                                    value={0}
-                                    checked={(form.dayQuantities[date]?.evening || 0) === 0}
-                                    onChange={() => {
-                                      setForm((f) => ({
-                                        ...f,
-                                        dayQuantities: {
-                                          ...f.dayQuantities,
-                                          [date]: { ...f.dayQuantities[date], evening: 0 }
-                                        }
-                                      }));
-                                    }}
-                                    className="w-4 h-4 accent-emerald-600"
-                                    disabled={!isSelected}
-                                  />
-                                  <span className={`text-sm ${isSelected ? 'text-emerald-700' : 'text-slate-500'}`}>None</span>
-                                </label>
-                              </div>
-                            </div>
+                        <div key={date} className="border border-emerald-200 rounded-lg p-4 bg-white">
+                          <div className="font-semibold text-emerald-900 mb-3">{date}</div>
+                          <div className="ml-4 space-y-2">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={(form.dayQuantities[date]?.morning || 0) > 0}
+                                onChange={() => {
+                                  const currentValue = form.dayQuantities[date]?.morning || 0;
+                                  setForm((f) => ({
+                                    ...f,
+                                    dayQuantities: {
+                                      ...f.dayQuantities,
+                                      [date]: { ...f.dayQuantities[date], morning: currentValue > 0 ? 0 : 1 }
+                                    }
+                                  }));
+                                }}
+                                className="w-4 h-4 cursor-pointer accent-emerald-600"
+                              />
+                              <span className="text-sm font-medium text-emerald-800">9:00 AM Prasadam</span>
+                            </label>
+                            <label className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={(form.dayQuantities[date]?.evening || 0) > 0}
+                                onChange={() => {
+                                  const currentValue = form.dayQuantities[date]?.evening || 0;
+                                  setForm((f) => ({
+                                    ...f,
+                                    dayQuantities: {
+                                      ...f.dayQuantities,
+                                      [date]: { ...f.dayQuantities[date], evening: currentValue > 0 ? 0 : 1 }
+                                    }
+                                  }));
+                                }}
+                                className="w-4 h-4 cursor-pointer accent-emerald-600"
+                              />
+                              <span className="text-sm font-medium text-emerald-800">4:30 PM Prasadam</span>
+                            </label>
                           </div>
                         </div>
                       );
