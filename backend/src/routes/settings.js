@@ -11,27 +11,24 @@ router.get('/', authenticate, async (req, res) => {
     return res.status(404).json({ message: 'Rates not configured yet' });
   }
   res.json({
-    breakfastRate: setting.breakfastRate,
-    lunchRate: setting.lunchRate,
-    dinnerRate: setting.dinnerRate
+    morningRate: setting.morningRate,
+    eveningRate: setting.eveningRate
   });
 });
 
 // admin-only to create/update rates
 router.post('/', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { breakfastRate, lunchRate, dinnerRate } = req.body;
+    const { morningRate, eveningRate } = req.body;
     if (
-      breakfastRate == null ||
-      lunchRate == null ||
-      dinnerRate == null ||
-      breakfastRate < 0 ||
-      lunchRate < 0 ||
-      dinnerRate < 0
+      morningRate == null ||
+      eveningRate == null ||
+      morningRate < 0 ||
+      eveningRate < 0
     ) {
-      return res.status(400).json({ message: 'All rates must be provided and non-negative' });
+      return res.status(400).json({ message: 'Both morningRate and eveningRate must be provided and non-negative' });
     }
-    const setting = await Setting.create({ breakfastRate, lunchRate, dinnerRate });
+    const setting = await Setting.create({ morningRate, eveningRate });
     res.status(201).json(setting);
   } catch (err) {
     console.error(err);

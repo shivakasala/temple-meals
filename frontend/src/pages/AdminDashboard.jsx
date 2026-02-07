@@ -18,9 +18,8 @@ export default function AdminDashboard() {
     role: 'user'
   });
   const [rateForm, setRateForm] = useState({
-    breakfastRate: '',
-    lunchRate: '',
-    dinnerRate: ''
+    morningRate: '',
+    eveningRate: ''
   });
 
   const loadUsers = async () => {
@@ -174,45 +173,33 @@ export default function AdminDashboard() {
 
       {/* Meal Rates Section */}
       <section className="card">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">💰 Meal Rates</h2>
-        <form onSubmit={handleRatesSave} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <h2 className="text-lg font-semibold text-slate-800 mb-4">💰 Prasadam Rates</h2>
+        <form onSubmit={handleRatesSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">🥐 Breakfast Rate (₹)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">⏰ 9:00 AM Prasadam Rate (₹)</label>
             <input
               type="number"
               min="0"
-              name="breakfastRate"
-              value={rateForm.breakfastRate ?? ''}
+              name="morningRate"
+              value={rateForm.morningRate ?? ''}
               onChange={handleRatesChange}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">🍛 Lunch Rate (₹)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">⏰ 4:30 PM Prasadam Rate (₹)</label>
             <input
               type="number"
               min="0"
-              name="lunchRate"
-              value={rateForm.lunchRate ?? ''}
+              name="eveningRate"
+              value={rateForm.eveningRate ?? ''}
               onChange={handleRatesChange}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">🍲 Dinner Rate (₹)</label>
-            <input
-              type="number"
-              min="0"
-              name="dinnerRate"
-              value={rateForm.dinnerRate ?? ''}
-              onChange={handleRatesChange}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <div className="flex items-end">
+          <div className="flex items-end md:col-span-2">
             <button
               type="submit"
               className="w-full py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"

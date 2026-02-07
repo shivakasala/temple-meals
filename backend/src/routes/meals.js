@@ -12,11 +12,11 @@ router.use(authenticate);
 const calculateBill = async ({ breakfast, lunch, dinner }) => {
   const s = await Setting.findOne().sort({ createdAt: -1 }).lean();
   if (!s) throw new Error('Rates not configured');
-  return (
-    (breakfast || 0) * s.breakfastRate +
-    (lunch || 0) * s.lunchRate +
-    (dinner || 0) * s.dinnerRate
-  );
+  // Map breakfast -> morningRate (9:00 AM prasadam)
+  // Map lunch + dinner -> eveningRate (4:30 PM prasadam)
+  const morning = s.morningRate || 0;
+  const evening = s.eveningRate || 0;
+  return (breakfast || 0) * morning + ((lunch || 0) + (dinner || 0)) * evening;
 };
 
 // Create meal request for next day

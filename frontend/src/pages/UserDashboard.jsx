@@ -93,9 +93,11 @@ export default function UserDashboard() {
 
   const calculateCost = () => {
     if (!rates) return 0;
-    return form.breakfast * rates.breakfastRate +
-           form.lunch * rates.lunchRate +
-           form.dinner * rates.dinnerRate;
+    // breakfast -> 9:00 AM prasadam (morningRate)
+    // lunch + dinner -> 4:30 PM prasadam (eveningRate)
+    const morning = rates.morningRate || 0;
+    const evening = rates.eveningRate || 0;
+    return form.breakfast * morning + (form.lunch + form.dinner) * evening;
   };
 
   return (
@@ -125,8 +127,8 @@ export default function UserDashboard() {
         ) : (
           <>
             <div className="bg-blue-50 p-3 rounded-lg mb-4 text-sm text-slate-700">
-              <strong>Current Meal Rates:</strong><br />
-              🥐 Breakfast: ₹{rates.breakfastRate} | 🍛 Lunch: ₹{rates.lunchRate} | 🍲 Dinner: ₹{rates.dinnerRate}
+              <strong>Current Prasadam Rates:</strong><br />
+              ⏰ 9:00 AM: ₹{rates.morningRate} | ⏰ 4:30 PM: ₹{rates.eveningRate}
               <br />
               <span className="text-xs text-slate-600">Requests allowed only for next day and before 4:00 PM</span>
             </div>
