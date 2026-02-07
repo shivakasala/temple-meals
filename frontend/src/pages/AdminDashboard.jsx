@@ -137,7 +137,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold text-slate-800">📊 Admin Dashboard</h1>
         <p className="text-slate-500 mt-1">Manage users, rates, meal requests, and payments</p>
