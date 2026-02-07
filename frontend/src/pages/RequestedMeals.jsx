@@ -6,7 +6,10 @@ export default function RequestedMeals() {
   const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all'); // all, pending, completed
+  const [filter, setFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [searchName, setSearchName] = useState('');
 
   useEffect(() => {
     loadMeals();
@@ -24,233 +27,233 @@ export default function RequestedMeals() {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const statusStyles = {
-      pending: 'bg-yellow-100 text-yellow-800 border border-yellow-300',
-      completed: 'bg-green-100 text-green-800 border border-green-300',
-      cancelled: 'bg-red-100 text-red-800 border border-red-300',
-    };
-    return statusStyles[status] || 'bg-gray-100 text-gray-800 border border-gray-300';
-  };
-
-  const getPaymentBadge = (status) => {
-    const statusStyles = {
-      paid: 'bg-green-100 text-green-800 border border-green-300',
-      pending: 'bg-yellow-100 text-yellow-800 border border-yellow-300',
-      failed: 'bg-red-100 text-red-800 border border-red-300',
-    };
-    return statusStyles[status] || 'bg-gray-100 text-gray-800 border border-gray-300';
-  };
-
   const formatDate = (dateStr) => {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
   };
 
-  const filteredMeals = meals.filter(meal => {
-    if (filter === 'all') return true;
-    if (filter === 'pending') return meal.mealStatus === 'pending';
-    if (filter === 'completed') return meal.mealStatus === 'completed';
+  // Filter meals
+  let filteredMeals = meals.filter(meal => {
+    if (filter !== 'all' && meal.mealStatus !== filter) return false;
+    if (searchName && !meal.userName.toLowerCase().includes(searchName.toLowerCase())) return false;
+    
+    const mealDate = new Date(meal.date);
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      if (mealDate < fromDate) return false;
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      if (mealDate > toDate) return false;
+    }
+    
     return true;
   });
 
+  // Calculate summary
+  const summary = {
+    morning: filteredMeals.reduce((sum, m) => sum + (m.morningPrasadam || 0), 0),
+    evening: filteredMeals.reduce((sum, m) => sum + (m.eveningPrasadam || 0), 0),
+    total: filteredMeals.reduce((sum, m) => sum + (m.billAmount || 0), 0)
+  };
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'requested': return 'text-yellow-600 font-semibold';
+      case 'approved': return 'text-green-600 font-semibold';
+      case 'rejected': return 'text-red-600 font-semibold';
+      default: return 'text-slate-600';
+    }
+  };
+
+  const getPaymentColor = (status) => {
+    switch(status) {
+      case 'paid': return 'text-green-600 font-semibold';
+      case 'pending': return 'text-yellow-600 font-semibold';
+      case 'payment-approved': return 'text-blue-600 font-semibold';
+      default: return 'text-slate-600';
+    }
+  };
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="relative rounded-2xl overflow-hidden shadow-lg">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-emerald-500 opacity-100"></div>
-        <div className="relative px-8 py-12 text-white">
-          <h1 className="text-4xl font-bold mb-2">Your Meal Requests</h1>
-          <p className="text-blue-100">View all your prasadam bookings and their status</p>
-        </div>
-      </div>
-
-      {/* Navigation Back */}
-      <div className="flex items-center gap-3">
-        <Link 
-          to="/user" 
-          className="px-4 py-2 rounded-lg bg-slate-200 text-slate-800 font-medium hover:bg-slate-300 transition inline-flex items-center gap-2"
-        >
-          ← Back to Booking
-        </Link>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-lg font-medium transition ${
-            filter === 'all'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-          }`}
-        >
-          All ({meals.length})
-        </button>
-        <button
-          onClick={() => setFilter('pending')}
-          className={`px-4 py-2 rounded-lg font-medium transition ${
-            filter === 'pending'
-              ? 'bg-yellow-600 text-white shadow-md'
-              : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-          }`}
-        >
-          Pending ({meals.filter(m => m.mealStatus === 'pending').length})
-        </button>
-        <button
-          onClick={() => setFilter('completed')}
-          className={`px-4 py-2 rounded-lg font-medium transition ${
-            filter === 'completed'
-              ? 'bg-green-600 text-white shadow-md'
-              : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-          }`}
-        >
-          Completed ({meals.filter(m => m.mealStatus === 'completed').length})
-        </button>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          <p className="font-medium">Error</p>
-          <p className="text-sm">{error}</p>
-        </div>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && filteredMeals.length === 0 && (
-        <div className="bg-slate-50 border border-slate-200 rounded-lg p-12 text-center">
-          <div className="text-4xl mb-3">🍽️</div>
-          <h3 className="text-lg font-semibold text-slate-700 mb-2">No meals found</h3>
-          <p className="text-slate-500 mb-6">
-            {filter === 'all' 
-              ? 'You haven\'t requested any meals yet. Create your first booking!'
-              : `No ${filter} meals at the moment.`}
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-slate-800">📋 Your Prasadam Requests</h1>
+            <p className="text-slate-600 mt-1">View and manage all your meal bookings</p>
+          </div>
           <Link 
             to="/user" 
-            className="inline-block px-6 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
+            className="px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
           >
-            Create Booking
+            + New Request
           </Link>
         </div>
-      )}
 
-      {/* Meals Grid */}
-      {!loading && filteredMeals.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filteredMeals.map((meal) => (
-            <div 
-              key={meal._id}
-              className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-md hover:shadow-lg transition-shadow"
-            >
-              {/* Card Header */}
-              <div className="h-1 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
-              
-              {/* Card Content */}
-              <div className="p-6 space-y-4">
-                {/* Date and Status */}
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase font-semibold tracking-wide">Meal Date</p>
-                    <p className="text-lg font-bold text-slate-900">{formatDate(meal.date)}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadge(meal.mealStatus)}`}>
-                      {meal.mealStatus?.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
+        {/* Search and Filter Section */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-500">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">From Date</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">To Date</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Name</label>
+              <input
+                type="text"
+                placeholder="User name"
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All</option>
+                <option value="requested">Requested</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+            <div className="flex items-end gap-2">
+              <button
+                onClick={() => {
+                  setDateFrom('');
+                  setDateTo('');
+                  setSearchName('');
+                  setFilter('all');
+                }}
+                className="w-full px-4 py-2 rounded-lg bg-slate-300 text-slate-800 font-medium hover:bg-slate-400 transition"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
 
-                {/* User Details */}
-                <div className="bg-slate-50 rounded-lg p-4 space-y-2">
-                  <p className="text-sm text-slate-600">
-                    <span className="font-medium text-slate-800">{meal.userName}</span>
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    📱 <span className="font-mono">{meal.userPhone}</span>
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    🏛️ {meal.userTemple}
-                  </p>
-                </div>
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+            <p className="text-red-700 font-medium">Error: {error}</p>
+          </div>
+        )}
 
-                {/* Meal Details */}
-                <div className="space-y-3">
-                  {/* Category */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600">Category</span>
-                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                      meal.category === 'IOS' 
-                        ? 'bg-blue-100 text-blue-800 border border-blue-300' 
-                        : 'bg-purple-100 text-purple-800 border border-purple-300'
-                    }`}>
-                      {meal.category}
-                    </span>
-                  </div>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        )}
 
-                  {/* Prasadam Details */}
-                  <div className="border-t border-slate-200 pt-3">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-slate-500 font-semibold mb-1">9:00 AM Prasadam</p>
-                        <p className="text-2xl font-bold text-blue-600">
-                          {meal.morningPrasadam || 0}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500 font-semibold mb-1">4:30 PM Prasadam</p>
-                        <p className="text-2xl font-bold text-emerald-600">
-                          {meal.eveningPrasadam || 0}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        {/* Table Section */}
+        {!loading && (
+          <div className="bg-white rounded-lg shadow-md overflow-hidden border-t-4 border-emerald-500">
+            {/* Table Header */}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead className="bg-gradient-to-r from-slate-100 to-slate-50 border-b-2 border-slate-300">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-bold text-slate-700 border-r">Date</th>
+                    <th className="px-4 py-3 text-left font-bold text-slate-700 border-r">Name</th>
+                    <th className="px-4 py-3 text-left font-bold text-slate-700 border-r">Phone</th>
+                    <th className="px-4 py-3 text-left font-bold text-slate-700 border-r">Department</th>
+                    <th className="px-4 py-3 text-center font-bold text-slate-700 border-r">Category</th>
+                    <th className="px-4 py-3 text-center font-bold text-slate-700 border-r w-12">M</th>
+                    <th className="px-4 py-3 text-center font-bold text-slate-700 border-r w-12">E</th>
+                    <th className="px-4 py-3 text-right font-bold text-slate-700 border-r w-20">Amount</th>
+                    <th className="px-4 py-3 text-left font-bold text-slate-700 border-r">Meal Status</th>
+                    <th className="px-4 py-3 text-left font-bold text-slate-700">Payment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMeals.length === 0 ? (
+                    <tr>
+                      <td colSpan="10" className="px-4 py-8 text-center text-slate-500">
+                        <p className="text-lg">No requests found</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredMeals.map((meal, idx) => (
+                      <tr key={meal._id} className={`border-b ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-blue-50 transition`}>
+                        <td className="px-4 py-3 border-r text-slate-900 font-medium">{formatDate(meal.date)}</td>
+                        <td className="px-4 py-3 border-r text-slate-900">{meal.userName}</td>
+                        <td className="px-4 py-3 border-r text-slate-700 font-mono text-xs">{meal.userPhone}</td>
+                        <td className="px-4 py-3 border-r text-slate-700">{meal.userTemple}</td>
+                        <td className="px-4 py-3 border-r text-center">
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${
+                            meal.category === 'IOS' 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            {meal.category}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 border-r text-center font-bold text-blue-600">{meal.morningPrasadam || 0}</td>
+                        <td className="px-4 py-3 border-r text-center font-bold text-emerald-600">{meal.eveningPrasadam || 0}</td>
+                        <td className="px-4 py-3 border-r text-right font-bold text-slate-900">₹{meal.billAmount || 0}</td>
+                        <td className={`px-4 py-3 border-r font-semibold ${getStatusColor(meal.mealStatus)}`}>
+                          {meal.mealStatus?.toUpperCase()}
+                        </td>
+                        <td className={`px-4 py-3 font-semibold ${getPaymentColor(meal.paymentStatus)}`}>
+                          {meal.paymentStatus?.toUpperCase()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-                {/* Bill and Payment */}
-                <div className="bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg p-4 space-y-3 border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-700 font-medium">Bill Amount</span>
-                    <span className="text-xl font-bold text-slate-900">₹{meal.billAmount || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-700 font-medium">Payment Status</span>
-                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getPaymentBadge(meal.paymentStatus)}`}>
-                      {meal.paymentStatus?.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Booking Date */}
-                <div className="text-xs text-slate-400 text-right">
-                  Booked on {formatDate(meal.createdAt)}
+            {/* Summary Row */}
+            {filteredMeals.length > 0 && (
+              <div className="bg-gradient-to-r from-slate-50 to-white border-t-2 border-slate-300 p-4">
+                <div className="flex items-center justify-between font-bold text-slate-800">
+                  <span>Summary:</span>
+                  <span className="flex gap-8">
+                    <span>9:00 AM: <span className="text-blue-600">{summary.morning}</span></span>
+                    <span>4:30 PM: <span className="text-emerald-600">{summary.evening}</span></span>
+                    <span>Total Amount: <span className="text-slate-900">₹{summary.total}</span></span>
+                  </span>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
-      {/* Refresh Button */}
-      <div className="flex justify-center">
-        <button
-          onClick={loadMeals}
-          className="px-6 py-2 rounded-lg bg-slate-200 text-slate-800 font-medium hover:bg-slate-300 transition"
-        >
-          🔄 Refresh
-        </button>
+        {/* Refresh Button */}
+        <div className="flex justify-center">
+          <button
+            onClick={loadMeals}
+            className="px-6 py-3 rounded-lg bg-slate-600 text-white font-medium hover:bg-slate-700 transition"
+          >
+            🔄 Refresh
+          </button>
+        </div>
       </div>
     </div>
   );
