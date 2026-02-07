@@ -77,26 +77,30 @@ export default function UserDashboard() {
 
   const handleDateChange = (e) => {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
+    const updatedForm = { ...form, [name]: value };
+    setForm(updatedForm);
     
-    if ((name === 'fromDate' || name === 'toDate') && form.fromDate && form.toDate) {
-      const fromDate = name === 'fromDate' ? value : form.fromDate;
-      const toDate = name === 'toDate' ? value : form.toDate;
-      if (fromDate && toDate) {
+    // Check if both dates are filled after update
+    if (updatedForm.fromDate && updatedForm.toDate) {
+      const fromDate = updatedForm.fromDate;
+      const toDate = updatedForm.toDate;
+      
+      // Validate date range
+      const fromDateObj = new Date(fromDate);
+      const toDateObj = new Date(toDate);
+      
+      if (fromDateObj <= toDateObj) {
         const range = generateDateRange(fromDate, toDate);
         setDateRangeDisplay(range);
         // Auto-select all days and initialize quantities
-        const newSelected = {};
         const newQuantities = {};
         range.forEach((item) => {
-          newSelected[item.date] = true;
-          if (!newQuantities[item.date]) {
-            newQuantities[item.date] = { morning: 0, evening: 0 };
-          }
+          newQuantities[item.date] = { morning: 0, evening: 0 };
         });
-        setSelectedDays(newSelected);
         setForm((f) => ({ ...f, dayQuantities: newQuantities }));
       }
+    } else {
+      setDateRangeDisplay([]);
     }
   };
 
