@@ -9,9 +9,8 @@ const mealCountSchema = new mongoose.Schema(
     date: { type: String, required: true }, // YYYY-MM-DD (temple local date)
     fromDate: { type: String }, // YYYY-MM-DD for range bookings
     toDate: { type: String }, // YYYY-MM-DD for range bookings
-    breakfast: { type: Number, default: 0, min: 0 },
-    lunch: { type: Number, default: 0, min: 0 },
-    dinner: { type: Number, default: 0, min: 0 },
+    morningPrasadam: { type: Number, default: 0, min: 0 }, // 9:00 AM prasadam count
+    eveningPrasadam: { type: Number, default: 0, min: 0 }, // 4:30 PM prasadam count
     category: { 
       type: String, 
       enum: ['IOS', 'COMMUNITY'],

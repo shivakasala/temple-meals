@@ -9,22 +9,20 @@ const router = express.Router();
 router.use(authenticate);
 
 // Helper to calculate bill on server to prevent tampering
-const calculateBill = async ({ breakfast, lunch, dinner }) => {
+const calculateBill = async ({ morningPrasadam, eveningPrasadam }) => {
   const s = await Setting.findOne().sort({ createdAt: -1 }).lean();
   if (!s) throw new Error('Rates not configured');
-  // Map breakfast + lunch -> morningRate (9:00 AM prasadam)
-  // Map dinner -> eveningRate (4:30 PM prasadam)
   const morning = s.morningRate || 0;
   const evening = s.eveningRate || 0;
-  return ((breakfast || 0) + (lunch || 0)) * morning + (dinner || 0) * evening;
+  return (morningPrasadam || 0) * morning + (eveningPrasadam || 0) * evening;
 };
 
 // Create meal request for next day
 router.post('/', async (req, res) => {
   try {
-    const { breakfast = 0, lunch = 0, dinner = 0, userPhone, userTemple, category = 'IOS', fromDate, toDate } = req.body;
+    const { morningPrasadam = 0, eveningPrasadam = 0, userPhone, userTemple, category = 'IOS', fromDate, toDate } = req.body;
     
-    if (breakfast < 0 || lunch < 0 || dinner < 0) {
+    if (morningPrasadam < 0 || eveningPrasadam < 0) {
       return res.status(400).json({ message: 'Counts must be non-negative' });
     }
 
@@ -50,7 +48,7 @@ router.post('/', async (req, res) => {
 
     const createdAt = nowUtc();
     const editableUntil = calcEditableUntil(createdAt);
-    const billAmount = await calculateBill({ breakfast, lunch, dinner });
+    const billAmount = await calculateBill({ morningPrasadam, eveningPrasadam });
 
     // Create meal records for each day in range
     const createdDocs = [];
@@ -68,9 +66,8 @@ router.post('/', async (req, res) => {
         date,
         fromDate,
         toDate,
-        breakfast,
-        lunch,
-        dinner,
+        morningPrasadam,
+        eveningPrasadam,
         category,
         billAmount,
         mealStatus: 'requested',
@@ -126,15 +123,14 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ message: 'Editing window expired or request not in requested state' });
     }
 
-    const { breakfast = meal.breakfast, lunch = meal.lunch, dinner = meal.dinner } = req.body;
-    if (breakfast < 0 || lunch < 0 || dinner < 0) {
+    const { morningPrasadam = meal.morningPrasadam, eveningPrasadam = meal.eveningPrasadam } = req.body;
+    if (morningPrasadam < 0 || eveningPrasadam < 0) {
       return res.status(400).json({ message: 'Counts must be non-negative' });
     }
 
-    const billAmount = await calculateBill({ breakfast, lunch, dinner });
-    meal.breakfast = breakfast;
-    meal.lunch = lunch;
-    meal.dinner = dinner;
+    const billAmount = await calculateBill({ morningPrasadam, eveningPrasadam });
+    meal.morningPrasadam = morningPrasadam;
+    meal.eveningPrasadam = eveningPrasadam;
     meal.billAmount = billAmount; // server-side only
     await meal.save();
     res.json(meal);

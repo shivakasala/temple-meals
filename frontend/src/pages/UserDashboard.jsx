@@ -11,16 +11,15 @@ export default function UserDashboard() {
     name: '',
     userPhone: '',
     userTemple: '',
-    breakfast: 0, 
-    lunch: 0, 
-    dinner: 0,
+    morningPrasadam: 0, 
+    eveningPrasadam: 0,
     category: 'IOS',
     fromDate: '',
     toDate: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [editingMeal, setEditingMeal] = useState(null);
-  const [editForm, setEditForm] = useState({ breakfast: 0, lunch: 0, dinner: 0 });
+  const [editForm, setEditForm] = useState({ morningPrasadam: 0, eveningPrasadam: 0 });
   const [dateRangeDisplay, setDateRangeDisplay] = useState([]);
 
   const loadRates = async () => {
@@ -52,7 +51,7 @@ export default function UserDashboard() {
     const { name, value } = e.target;
     setForm((f) => ({ 
       ...f, 
-      [name]: (name === 'breakfast' || name === 'lunch' || name === 'dinner') ? Number(value) : value 
+      [name]: (name === 'morningPrasadam' || name === 'eveningPrasadam') ? Number(value) : value 
     }));
   };
 
@@ -104,9 +103,8 @@ export default function UserDashboard() {
         name: form.name,
         userPhone: form.userPhone,
         userTemple: form.userTemple,
-        breakfast: form.breakfast,
-        lunch: form.lunch,
-        dinner: form.dinner,
+        morningPrasadam: form.morningPrasadam,
+        eveningPrasadam: form.eveningPrasadam,
         category: form.category,
         fromDate: form.fromDate,
         toDate: form.toDate
@@ -115,9 +113,8 @@ export default function UserDashboard() {
         name: '',
         userPhone: '',
         userTemple: '',
-        breakfast: 0, 
-        lunch: 0, 
-        dinner: 0,
+        morningPrasadam: 0, 
+        eveningPrasadam: 0,
         category: 'IOS',
         fromDate: '',
         toDate: ''
@@ -133,7 +130,7 @@ export default function UserDashboard() {
 
   const openEditModal = (meal) => {
     setEditingMeal(meal);
-    setEditForm({ breakfast: meal.breakfast, lunch: meal.lunch, dinner: meal.dinner });
+    setEditForm({ morningPrasadam: meal.morningPrasadam, eveningPrasadam: meal.eveningPrasadam });
   };
 
   const closeEditModal = () => {
@@ -167,11 +164,9 @@ export default function UserDashboard() {
 
   const calculateCost = () => {
     if (!rates) return 0;
-    // breakfast + lunch -> 9:00 AM prasadam (morningRate)
-    // dinner -> 4:30 PM prasadam (eveningRate)
     const morning = rates.morningRate || 0;
     const evening = rates.eveningRate || 0;
-    const dayCost = (form.breakfast + form.lunch) * morning + form.dinner * evening;
+    const dayCost = form.morningPrasadam * morning + form.eveningPrasadam * evening;
     
     // If date range is selected, multiply by number of days
     if (form.fromDate && form.toDate) {
@@ -318,37 +313,26 @@ export default function UserDashboard() {
 
               {/* Meal Count Section */}
               <div className="bg-slate-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-slate-800 mb-3">🍽️ Daily Meal Count</h3>
-                <div className="grid grid-cols-3 gap-3">
+                <h3 className="font-semibold text-slate-800 mb-3">🍽️ Prasadam Count</h3>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">🥐 Breakfast</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">⏰ 9:00 AM Prasadam</label>
                     <input
                       type="number"
                       min="0"
-                      name="breakfast"
-                      value={form.breakfast}
+                      name="morningPrasadam"
+                      value={form.morningPrasadam}
                       onChange={handleChange}
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">🍛 Lunch</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">⏰ 4:30 PM Prasadam</label>
                     <input
                       type="number"
                       min="0"
-                      name="lunch"
-                      value={form.lunch}
-                      onChange={handleChange}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">🍲 Dinner</label>
-                    <input
-                      type="number"
-                      min="0"
-                      name="dinner"
-                      value={form.dinner}
+                      name="eveningPrasadam"
+                      value={form.eveningPrasadam}
                       onChange={handleChange}
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
@@ -378,7 +362,7 @@ export default function UserDashboard() {
 
               <button
                 type="submit"
-                disabled={submitting || (form.breakfast + form.lunch + form.dinner === 0) || !form.fromDate || !form.toDate}
+                disabled={submitting || (form.morningPrasadam + form.eveningPrasadam === 0) || !form.fromDate || !form.toDate}
                 className="w-full py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 transition"
               >
                 {submitting ? '⏳ Submitting...' : '✓ Submit Request'}
@@ -420,10 +404,9 @@ export default function UserDashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mb-3 text-sm">
-                    <div className="bg-white p-2 rounded">🥐 {m.breakfast}</div>
-                    <div className="bg-white p-2 rounded">🍛 {m.lunch}</div>
-                    <div className="bg-white p-2 rounded">🍲 {m.dinner}</div>
+                  <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+                    <div className="bg-white p-2 rounded">⏰ 9:00 AM: {m.morningPrasadam}</div>
+                    <div className="bg-white p-2 rounded">⏰ 4:30 PM: {m.eveningPrasadam}</div>
                   </div>
 
                   <div className="flex gap-2 flex-wrap">
@@ -459,34 +442,23 @@ export default function UserDashboard() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">🥐 Breakfast</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">⏰ 9:00 AM Prasadam</label>
             <input
               type="number"
               min="0"
-              name="breakfast"
-              value={editForm.breakfast}
+              name="morningPrasadam"
+              value={editForm.morningPrasadam}
               onChange={handleEditChange}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">🍛 Lunch</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">⏰ 4:30 PM Prasadam</label>
             <input
               type="number"
               min="0"
-              name="lunch"
-              value={editForm.lunch}
-              onChange={handleEditChange}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">🍲 Dinner</label>
-            <input
-              type="number"
-              min="0"
-              name="dinner"
-              value={editForm.dinner}
+              name="eveningPrasadam"
+              value={editForm.eveningPrasadam}
               onChange={handleEditChange}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
