@@ -468,7 +468,7 @@ export default function UserDashboard() {
               <button
                 type="submit"
                 disabled={submitting || calculateCost() === 0 || !form.fromDate || !form.toDate}
-                className="w-full py-3 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition transform hover:scale-105 active:scale-95 shadow-lg"
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 text-white font-bold text-lg hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-xl hover:shadow-2xl border-2 border-emerald-400"
               >
                 {submitting ? (
                   <span className="flex items-center justify-center gap-2">
