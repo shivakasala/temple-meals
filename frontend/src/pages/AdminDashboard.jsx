@@ -138,7 +138,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 py-8">
-      <div className="space-y-6 max-w-2xl mx-auto px-4">
+      <div className="space-y-6 max-w-xl mx-auto px-4">
         <div className="text-center">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">📊 Admin Dashboard</h1>
           <p className="text-slate-600 mt-2 text-lg">Manage users, rates, and meal requests</p>

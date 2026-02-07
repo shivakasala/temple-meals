@@ -231,7 +231,7 @@ export default function UserDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50 py-8">
-      <div className="space-y-6 max-w-2xl mx-auto px-4">
+      <div className="space-y-6 max-w-xl mx-auto px-4">
         <div className="text-center">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">🍽️ Book Your Prasadam</h1>
           <p className="text-slate-600 mt-2 text-lg">Manage your daily meal requests with ease</p>
