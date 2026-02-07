@@ -128,33 +128,28 @@ export default function UserDashboard() {
 
     setSubmitting(true);
     try {
-      // Create records for each selected day and time slot
+      // Create a single record for each selected day
       const records = [];
+      const morningRate = rates.morningRate || 0;
+      const eveningRate = rates.eveningRate || 0;
+
       Object.entries(form.dayQuantities).forEach(([date, quantities]) => {
-        if (quantities?.morning > 0) {
+        const morningCount = quantities?.morning || 0;
+        const eveningCount = quantities?.evening || 0;
+
+        if (morningCount > 0 || eveningCount > 0) {
+          const dailyBillAmount = (morningCount * morningRate) + (eveningCount * eveningRate);
           records.push({
             name: form.name,
             userPhone: form.userPhone,
             userTemple: form.userTemple,
-            morningPrasadam: quantities.morning,
-            eveningPrasadam: 0,
+            morningPrasadam: morningCount,
+            eveningPrasadam: eveningCount,
             category: form.category,
             date: date,
             fromDate: date,
-            toDate: date
-          });
-        }
-        if (quantities?.evening > 0) {
-          records.push({
-            name: form.name,
-            userPhone: form.userPhone,
-            userTemple: form.userTemple,
-            morningPrasadam: 0,
-            eveningPrasadam: quantities.evening,
-            category: form.category,
-            date: date,
-            fromDate: date,
-            toDate: date
+            toDate: date,
+            billAmount: dailyBillAmount // Calculate bill amount per day
           });
         }
       });
