@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
+import AdminRequests from './pages/AdminRequests.jsx';
 import UserDashboard from './pages/UserDashboard.jsx';
 import RequestedMeals from './pages/RequestedMeals.jsx';
 import { getStoredAuth, clearAuth } from './services/auth';
@@ -93,6 +94,14 @@ export default function App() {
           element={
             <ProtectedRoute role="admin">
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-requests"
+          element={
+            <ProtectedRoute role="admin">
+              <AdminRequests />
             </ProtectedRoute>
           }
         />

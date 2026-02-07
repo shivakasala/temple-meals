@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import Modal from '../components/Modal';
 
@@ -142,6 +143,22 @@ export default function AdminDashboard() {
         <div className="text-center">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">📊 Admin Dashboard</h1>
           <p className="text-slate-600 mt-2 text-lg">Manage users, rates, and meal requests</p>
+        </div>
+
+        {/* Navigation Links */}
+        <div className="flex gap-2 justify-center flex-wrap">
+          <Link 
+            to="/admin"
+            className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
+          >
+            📊 Dashboard
+          </Link>
+          <Link 
+            to="/admin-requests"
+            className="px-4 py-2 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition"
+          >
+            📋 All Requests
+          </Link>
         </div>
 
       {error && (
