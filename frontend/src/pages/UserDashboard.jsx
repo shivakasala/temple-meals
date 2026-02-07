@@ -11,11 +11,10 @@ export default function UserDashboard() {
     name: '',
     userPhone: '',
     userTemple: '',
-    morningPrasadam: 0, 
-    eveningPrasadam: 0,
     category: 'IOS',
     fromDate: '',
-    toDate: ''
+    toDate: '',
+    dayQuantities: {}
   });
   const [submitting, setSubmitting] = useState(false);
   const [editingMeal, setEditingMeal] = useState(null);
@@ -86,12 +85,17 @@ export default function UserDashboard() {
       if (fromDate && toDate) {
         const range = generateDateRange(fromDate, toDate);
         setDateRangeDisplay(range);
-        // Auto-select all days
+        // Auto-select all days and initialize quantities
         const newSelected = {};
+        const newQuantities = {};
         range.forEach((item) => {
           newSelected[item.date] = true;
+          if (!newQuantities[item.date]) {
+            newQuantities[item.date] = { morning: 0, evening: 0 };
+          }
         });
         setSelectedDays(newSelected);
+        setForm((f) => ({ ...f, dayQuantities: newQuantities }));
       }
     }
   };
@@ -117,31 +121,56 @@ export default function UserDashboard() {
 
     setSubmitting(true);
     try {
-      // Get selected dates and filter to only selected ones
+      // Get selected dates array
       const selectedDatesArray = dateRangeDisplay
         .filter((item) => selectedDays[item.date])
         .map((item) => item.date);
 
-      await api.post('/meals', {
-        name: form.name,
-        userPhone: form.userPhone,
-        userTemple: form.userTemple,
-        morningPrasadam: form.morningPrasadam,
-        eveningPrasadam: form.eveningPrasadam,
-        category: form.category,
-        fromDate: selectedDatesArray[0],
-        toDate: selectedDatesArray[selectedDatesArray.length - 1],
-        selectedDates: selectedDatesArray
+      // Create records for each selected day and time slot
+      const records = [];
+      selectedDatesArray.forEach((date) => {
+        const quantities = form.dayQuantities[date];
+        if (quantities?.morning > 0) {
+          records.push({
+            name: form.name,
+            userPhone: form.userPhone,
+            userTemple: form.userTemple,
+            morningPrasadam: quantities.morning,
+            eveningPrasadam: 0,
+            category: form.category,
+            date: date,
+            fromDate: date,
+            toDate: date
+          });
+        }
+        if (quantities?.evening > 0) {
+          records.push({
+            name: form.name,
+            userPhone: form.userPhone,
+            userTemple: form.userTemple,
+            morningPrasadam: 0,
+            eveningPrasadam: quantities.evening,
+            category: form.category,
+            date: date,
+            fromDate: date,
+            toDate: date
+          });
+        }
       });
+
+      // Submit all records
+      for (const record of records) {
+        await api.post('/meals', record);
+      }
+
       setForm({ 
         name: '',
         userPhone: '',
         userTemple: '',
-        morningPrasadam: 0, 
-        eveningPrasadam: 0,
         category: 'IOS',
         fromDate: '',
-        toDate: ''
+        toDate: '',
+        dayQuantities: {}
       });
       setDateRangeDisplay([]);
       setSelectedDays({});
@@ -373,64 +402,128 @@ export default function UserDashboard() {
                 </div>
               </div>
 
-              {/* Prasadam Count Section */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
-                  <span className="inline-block w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm mr-2">4</span>
-                  Prasadam Quantity
-                </label>
-                <div className="flex flex-col md:flex-row gap-4 pl-12">
-                  <div className="flex-1 relative">
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">9:00 AM Prasadam</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        name="morningPrasadam"
-                        value={form.morningPrasadam}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:bg-blue-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
-                      />
-                      <span className="absolute right-4 top-10 text-slate-500 text-sm">portions</span>
-                    </div>
-                  </div>
-                  <div className="flex-1 relative">
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">4:30 PM Prasadam</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        name="eveningPrasadam"
-                        value={form.eveningPrasadam}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:bg-blue-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
-                      />
-                      <span className="absolute right-4 top-10 text-slate-500 text-sm">portions</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Date Range Display with Checkboxes */}
+              {/* Date Range Display with Daywise Prasadam Selection */}
               {dateRangeDisplay.length > 0 && (
                 <div className="p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg border border-emerald-300">
-                  <h4 className="text-sm font-semibold text-emerald-900 mb-3 flex items-center gap-2">
-                    <span>📅</span> Select Booking Days ({Object.values(selectedDays).filter(Boolean).length} of {dateRangeDisplay.length} selected)
+                  <h4 className="text-sm font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+                    <span>📅</span> Select Prasadam for Each Day ({Object.values(selectedDays).filter(Boolean).length} of {dateRangeDisplay.length} days)
                   </h4>
-                  <div className="flex flex-col gap-2">
-                    {dateRangeDisplay.map((item, idx) => (
-                      <label key={idx} className="flex items-center gap-3 p-2 rounded hover:bg-emerald-100 cursor-pointer transition">
-                        <input
-                          type="checkbox"
-                          checked={selectedDays[item.date] || false}
-                          onChange={() => handleDayToggle(item.date)}
-                          className="w-4 h-4 cursor-pointer accent-emerald-600"
-                        />
-                        <span className="text-xs text-emerald-800">
-                          <span className="font-medium">{item.morning}</span> & <span className="font-medium">{item.evening}</span>
-                        </span>
-                      </label>
-                    ))}
+                  <div className="flex flex-col gap-4">
+                    {dateRangeDisplay.map((item) => {
+                      const date = item.date;
+                      const isSelected = selectedDays[date];
+                      return (
+                        <div key={date} className="border border-emerald-200 rounded-lg p-4 bg-white">
+                          <div className="flex items-center mb-4">
+                            <input
+                              type="checkbox"
+                              checked={isSelected || false}
+                              onChange={() => handleDayToggle(date)}
+                              className="w-5 h-5 cursor-pointer accent-emerald-600 mr-3"
+                            />
+                            <span className="font-semibold text-emerald-900">{date}</span>
+                          </div>
+                          
+                          {isSelected && (
+                            <div className="ml-8 space-y-3">
+                              {/* 9:00 AM Prasadam */}
+                              <div>
+                                <label className="text-sm font-medium text-emerald-800 mb-2 block">9:00 AM Prasadam</label>
+                                <div className="flex gap-3">
+                                  {[1, 2, 3, 4].map((qty) => (
+                                    <label key={`${date}-morning-${qty}`} className="flex items-center gap-2 cursor-pointer">
+                                      <input
+                                        type="radio"
+                                        name={`morning-${date}`}
+                                        value={qty}
+                                        checked={(form.dayQuantities[date]?.morning || 0) === qty}
+                                        onChange={() => {
+                                          setForm((f) => ({
+                                            ...f,
+                                            dayQuantities: {
+                                              ...f.dayQuantities,
+                                              [date]: { ...f.dayQuantities[date], morning: qty }
+                                            }
+                                          }));
+                                        }}
+                                        className="w-4 h-4 accent-emerald-600"
+                                      />
+                                      <span className="text-sm text-emerald-700">{qty}</span>
+                                    </label>
+                                  ))}
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`morning-${date}`}
+                                      value={0}
+                                      checked={(form.dayQuantities[date]?.morning || 0) === 0}
+                                      onChange={() => {
+                                        setForm((f) => ({
+                                          ...f,
+                                          dayQuantities: {
+                                            ...f.dayQuantities,
+                                            [date]: { ...f.dayQuantities[date], morning: 0 }
+                                          }
+                                        }));
+                                      }}
+                                      className="w-4 h-4 accent-emerald-600"
+                                    />
+                                    <span className="text-sm text-emerald-700">None</span>
+                                  </label>
+                                </div>
+                              </div>
+
+                              {/* 4:30 PM Prasadam */}
+                              <div>
+                                <label className="text-sm font-medium text-emerald-800 mb-2 block">4:30 PM Prasadam</label>
+                                <div className="flex gap-3">
+                                  {[1, 2, 3, 4].map((qty) => (
+                                    <label key={`${date}-evening-${qty}`} className="flex items-center gap-2 cursor-pointer">
+                                      <input
+                                        type="radio"
+                                        name={`evening-${date}`}
+                                        value={qty}
+                                        checked={(form.dayQuantities[date]?.evening || 0) === qty}
+                                        onChange={() => {
+                                          setForm((f) => ({
+                                            ...f,
+                                            dayQuantities: {
+                                              ...f.dayQuantities,
+                                              [date]: { ...f.dayQuantities[date], evening: qty }
+                                            }
+                                          }));
+                                        }}
+                                        className="w-4 h-4 accent-emerald-600"
+                                      />
+                                      <span className="text-sm text-emerald-700">{qty}</span>
+                                    </label>
+                                  ))}
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`evening-${date}`}
+                                      value={0}
+                                      checked={(form.dayQuantities[date]?.evening || 0) === 0}
+                                      onChange={() => {
+                                        setForm((f) => ({
+                                          ...f,
+                                          dayQuantities: {
+                                            ...f.dayQuantities,
+                                            [date]: { ...f.dayQuantities[date], evening: 0 }
+                                          }
+                                        }));
+                                      }}
+                                      className="w-4 h-4 accent-emerald-600"
+                                    />
+                                    <span className="text-sm text-emerald-700">None</span>
+                                  </label>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -449,7 +542,7 @@ export default function UserDashboard() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={submitting || (form.morningPrasadam + form.eveningPrasadam === 0) || !form.fromDate || !form.toDate}
+                disabled={submitting || calculateCost() === 0 || !form.fromDate || !form.toDate}
                 className="w-full py-3 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition transform hover:scale-105 active:scale-95 shadow-lg"
               >
                 {submitting ? (
