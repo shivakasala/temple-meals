@@ -137,15 +137,16 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-800">📊 Admin Dashboard</h1>
-        <p className="text-slate-500 mt-1">Manage users, rates, meal requests, and payments</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 py-8">
+      <div className="space-y-6 max-w-2xl mx-auto px-4">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">📊 Admin Dashboard</h1>
+          <p className="text-slate-600 mt-2 text-lg">Manage users, rates, and meal requests</p>
+        </div>
 
       {error && (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="p-4 rounded-lg bg-red-50 border-l-4 border-red-500 shadow-sm">
+          <p className="text-sm text-red-700 font-medium">⚠️ {error}</p>
         </div>
       )}
 

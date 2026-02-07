@@ -230,26 +230,29 @@ export default function UserDashboard() {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-800">🍽️ My Meal Requests</h1>
-        <p className="text-slate-500 mt-1">Submit and manage your daily meal requests</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50 py-8">
+      <div className="space-y-6 max-w-2xl mx-auto px-4">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">🍽️ Book Your Prasadam</h1>
+          <p className="text-slate-600 mt-2 text-lg">Manage your daily meal requests with ease</p>
+        </div>
 
       {error && (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="p-4 rounded-lg bg-red-50 border-l-4 border-red-500 shadow-sm">
+          <p className="text-sm text-red-700 font-medium">⚠️ {error}</p>
         </div>
       )}
 
       {/* Submit New Request Card */}
-      <section className="card shadow-lg">
-        <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-200">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">📋 Book Prasadam</h2>
-            <p className="text-sm text-slate-500 mt-1">Fill in your details and select your booking period</p>
-          </div>
+      <section className="card shadow-xl bg-white rounded-xl border border-slate-200">
+        <div className="bg-gradient-to-r from-blue-600 to-emerald-600 rounded-t-xl p-6 mb-6">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <span>📋</span> Book Prasadam
+          </h2>
+          <p className="text-blue-50 mt-2">Select dates and meals for your booking</p>
         </div>
+
+        <div className="px-6 pb-6">
 
         {loadingRates ? (
           <div className="flex items-center justify-center py-12">
@@ -262,33 +265,33 @@ export default function UserDashboard() {
           </div>
         ) : (
           <>
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl">💰</span>
-                <div>
-                  <p className="text-xs font-semibold text-blue-900 uppercase tracking-wide">Current Rates</p>
-                  <div className="mt-2 grid grid-cols-2 gap-4">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm text-blue-700">9:00 AM:</span>
-                      <span className="text-lg font-bold text-blue-900">₹{rates.morningRate}</span>
+            <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">💰</span>
+                <div className="flex-1">
+                  <p className="text-xs font-bold text-amber-900 uppercase tracking-wider">Current Rates</p>
+                  <div className="mt-2 grid grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-xs text-amber-700 mb-1">9:00 AM Prasadam</p>
+                      <p className="text-2xl font-bold text-amber-900">₹{rates.morningRate}</p>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm text-blue-700">4:30 PM:</span>
-                      <span className="text-lg font-bold text-blue-900">₹{rates.eveningRate}</span>
+                    <div>
+                      <p className="text-xs text-amber-700 mb-1">4:30 PM Prasadam</p>
+                      <p className="text-2xl font-bold text-amber-900">₹{rates.eveningRate}</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {/* Personal Info Section */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
-                  <span className="inline-block w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm mr-2">1</span>
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
                   Personal Details
                 </label>
-                <div className="flex flex-col md:flex-row gap-4 pl-12">
+                <div className="flex flex-col md:flex-row gap-3">
                   <div className="flex-1">
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
                     <input
