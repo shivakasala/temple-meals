@@ -7,10 +7,21 @@ export default function UserDashboard() {
   const [loadingRates, setLoadingRates] = useState(true);
   const [error, setError] = useState('');
   const [meals, setMeals] = useState([]);
-  const [form, setForm] = useState({ breakfast: 0, lunch: 0, dinner: 0 });
+  const [form, setForm] = useState({ 
+    name: '',
+    userPhone: '',
+    userTemple: '',
+    breakfast: 0, 
+    lunch: 0, 
+    dinner: 0,
+    category: 'IOS',
+    fromDate: '',
+    toDate: ''
+  });
   const [submitting, setSubmitting] = useState(false);
   const [editingMeal, setEditingMeal] = useState(null);
   const [editForm, setEditForm] = useState({ breakfast: 0, lunch: 0, dinner: 0 });
+  const [dateRangeDisplay, setDateRangeDisplay] = useState([]);
 
   const loadRates = async () => {
     try {
@@ -39,16 +50,79 @@ export default function UserDashboard() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: Number(value) }));
+    setForm((f) => ({ 
+      ...f, 
+      [name]: (name === 'breakfast' || name === 'lunch' || name === 'dinner') ? Number(value) : value 
+    }));
+  };
+
+  // Generate date range display
+  const generateDateRange = (from, to) => {
+    if (!from || !to) return [];
+    const dates = [];
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      dates.push({
+        date: dateStr,
+        morning: `${dateStr} - 9:00 AM Prasadam`,
+        evening: `${dateStr} - 4:30 PM Prasadam`
+      });
+    }
+    return dates;
+  };
+
+  const handleDateChange = (e) => {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
+    
+    if ((name === 'fromDate' || name === 'toDate') && form.fromDate && form.toDate) {
+      const fromDate = name === 'fromDate' ? value : form.fromDate;
+      const toDate = name === 'toDate' ? value : form.toDate;
+      if (fromDate && toDate) {
+        setDateRangeDisplay(generateDateRange(fromDate, toDate));
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    if (!form.name || !form.userPhone || !form.userTemple) {
+      setError('Please fill in name, phone, and temple/department');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await api.post('/meals', form);
-      setForm({ breakfast: 0, lunch: 0, dinner: 0 });
+      await api.post('/meals', {
+        name: form.name,
+        userPhone: form.userPhone,
+        userTemple: form.userTemple,
+        breakfast: form.breakfast,
+        lunch: form.lunch,
+        dinner: form.dinner,
+        category: form.category,
+        fromDate: form.fromDate,
+        toDate: form.toDate
+      });
+      setForm({ 
+        name: '',
+        userPhone: '',
+        userTemple: '',
+        breakfast: 0, 
+        lunch: 0, 
+        dinner: 0,
+        category: 'IOS',
+        fromDate: '',
+        toDate: ''
+      });
+      setDateRangeDisplay([]);
       await loadMine();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to submit meal request');
@@ -93,11 +167,20 @@ export default function UserDashboard() {
 
   const calculateCost = () => {
     if (!rates) return 0;
-    // breakfast -> 9:00 AM prasadam (morningRate)
-    // lunch + dinner -> 4:30 PM prasadam (eveningRate)
+    // breakfast + lunch -> 9:00 AM prasadam (morningRate)
+    // dinner -> 4:30 PM prasadam (eveningRate)
     const morning = rates.morningRate || 0;
     const evening = rates.eveningRate || 0;
-    return form.breakfast * morning + (form.lunch + form.dinner) * evening;
+    const dayCost = (form.breakfast + form.lunch) * morning + form.dinner * evening;
+    
+    // If date range is selected, multiply by number of days
+    if (form.fromDate && form.toDate) {
+      const fromDate = new Date(form.fromDate);
+      const toDate = new Date(form.toDate);
+      const days = Math.floor((toDate - fromDate) / (1000 * 60 * 60 * 24)) + 1;
+      return dayCost * days;
+    }
+    return dayCost;
   };
 
   return (
@@ -115,7 +198,7 @@ export default function UserDashboard() {
 
       {/* Submit New Request Card */}
       <section className="card">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">📝 Submit Next-Day Request</h2>
+        <h2 className="text-lg font-semibold text-slate-800 mb-4">📝 Submit Meal Request</h2>
         {loadingRates ? (
           <div className="flex items-center gap-2 text-slate-500">
             <span className="spinner"></span> Loading rates...
@@ -129,45 +212,164 @@ export default function UserDashboard() {
             <div className="bg-blue-50 p-3 rounded-lg mb-4 text-sm text-slate-700">
               <strong>Current Prasadam Rates:</strong><br />
               ⏰ 9:00 AM: ₹{rates.morningRate} | ⏰ 4:30 PM: ₹{rates.eveningRate}
-              <br />
-              <span className="text-xs text-slate-600">Requests allowed only for next day and before 4:00 PM</span>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">🥐 Breakfast</label>
-                  <input
-                    type="number"
-                    min="0"
-                    name="breakfast"
-                    value={form.breakfast}
-                    onChange={handleChange}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">🍛 Lunch</label>
-                  <input
-                    type="number"
-                    min="0"
-                    name="lunch"
-                    value={form.lunch}
-                    onChange={handleChange}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">🍲 Dinner</label>
-                  <input
-                    type="number"
-                    min="0"
-                    name="dinner"
-                    value={form.dinner}
-                    onChange={handleChange}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+              {/* Personal Info Section */}
+              <div className="bg-slate-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-slate-800 mb-3">👤 Personal Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="Your name"
+                      value={form.name}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                    <input
+                      type="tel"
+                      name="userPhone"
+                      placeholder="10-digit number"
+                      value={form.userPhone}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Temple/Department</label>
+                    <input
+                      type="text"
+                      name="userTemple"
+                      placeholder="e.g., Main Hall"
+                      value={form.userTemple}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
+
+              {/* Date Range Section */}
+              <div className="bg-slate-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-slate-800 mb-3">📅 Booking Period</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">From Date</label>
+                    <input
+                      type="date"
+                      name="fromDate"
+                      value={form.fromDate}
+                      onChange={handleDateChange}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">To Date</label>
+                    <input
+                      type="date"
+                      name="toDate"
+                      value={form.toDate}
+                      onChange={handleDateChange}
+                      min={form.fromDate}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Section */}
+              <div className="bg-slate-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-slate-800 mb-3">🏷️ Prasadam Category</h3>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="category"
+                      value="IOS"
+                      checked={form.category === 'IOS'}
+                      onChange={handleChange}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm text-slate-700">Individual (IOS)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="category"
+                      value="COMMUNITY"
+                      checked={form.category === 'COMMUNITY'}
+                      onChange={handleChange}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm text-slate-700">Community</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Meal Count Section */}
+              <div className="bg-slate-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-slate-800 mb-3">🍽️ Daily Meal Count</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">🥐 Breakfast</label>
+                    <input
+                      type="number"
+                      min="0"
+                      name="breakfast"
+                      value={form.breakfast}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">🍛 Lunch</label>
+                    <input
+                      type="number"
+                      min="0"
+                      name="lunch"
+                      value={form.lunch}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">🍲 Dinner</label>
+                    <input
+                      type="number"
+                      min="0"
+                      name="dinner"
+                      value={form.dinner}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Date Range Display */}
+              {dateRangeDisplay.length > 0 && (
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="font-semibold text-slate-800 mb-2">📋 Prasadam Schedule</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {dateRangeDisplay.map((item, idx) => (
+                      <div key={idx} className="text-sm text-slate-700">
+                        <div>✓ {item.morning}</div>
+                        <div>✓ {item.evening}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center justify-between bg-slate-100 p-3 rounded-lg">
                 <span className="font-semibold text-slate-800">Total Cost:</span>
@@ -176,7 +378,7 @@ export default function UserDashboard() {
 
               <button
                 type="submit"
-                disabled={submitting || (form.breakfast + form.lunch + form.dinner === 0)}
+                disabled={submitting || (form.breakfast + form.lunch + form.dinner === 0) || !form.fromDate || !form.toDate}
                 className="w-full py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 transition"
               >
                 {submitting ? '⏳ Submitting...' : '✓ Submit Request'}

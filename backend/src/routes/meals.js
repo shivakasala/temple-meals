@@ -12,51 +12,76 @@ router.use(authenticate);
 const calculateBill = async ({ breakfast, lunch, dinner }) => {
   const s = await Setting.findOne().sort({ createdAt: -1 }).lean();
   if (!s) throw new Error('Rates not configured');
-  // Map breakfast -> morningRate (9:00 AM prasadam)
-  // Map lunch + dinner -> eveningRate (4:30 PM prasadam)
+  // Map breakfast + lunch -> morningRate (9:00 AM prasadam)
+  // Map dinner -> eveningRate (4:30 PM prasadam)
   const morning = s.morningRate || 0;
   const evening = s.eveningRate || 0;
-  return (breakfast || 0) * morning + ((lunch || 0) + (dinner || 0)) * evening;
+  return ((breakfast || 0) + (lunch || 0)) * morning + (dinner || 0) * evening;
 };
 
 // Create meal request for next day
 router.post('/', async (req, res) => {
   try {
-    if (isPastCutoffForNextDay()) {
-      return res.status(400).json({ message: '4 PM cutoff passed. Cannot create next-day request.' });
-    }
-
-    const { breakfast = 0, lunch = 0, dinner = 0 } = req.body;
+    const { breakfast = 0, lunch = 0, dinner = 0, userPhone, userTemple, category = 'IOS', fromDate, toDate } = req.body;
+    
     if (breakfast < 0 || lunch < 0 || dinner < 0) {
       return res.status(400).json({ message: 'Counts must be non-negative' });
     }
 
-    const date = nextDayLocalDateString();
-
-    const existing = await MealCount.findOne({ userId: req.user.id, date });
-    if (existing) {
-      return res.status(409).json({ message: 'Request for next day already exists. Edit existing one if allowed.' });
+    // Support single day or range booking
+    let bookingDates = [];
+    if (fromDate && toDate) {
+      // Multi-day booking
+      const from = new Date(fromDate);
+      const to = new Date(toDate);
+      for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        bookingDates.push(`${year}-${month}-${day}`);
+      }
+    } else {
+      // Single day (next day)
+      if (isPastCutoffForNextDay()) {
+        return res.status(400).json({ message: '4 PM cutoff passed. Cannot create next-day request.' });
+      }
+      bookingDates = [nextDayLocalDateString()];
     }
 
     const createdAt = nowUtc();
     const editableUntil = calcEditableUntil(createdAt);
     const billAmount = await calculateBill({ breakfast, lunch, dinner });
 
-    const doc = await MealCount.create({
-      userId: req.user.id,
-      userName: req.user.username,
-      date,
-      breakfast,
-      lunch,
-      dinner,
-      billAmount,
-      mealStatus: 'requested',
-      paymentStatus: 'pending',
-      createdAt,
-      editableUntil
-    });
+    // Create meal records for each day in range
+    const createdDocs = [];
+    for (const date of bookingDates) {
+      const existing = await MealCount.findOne({ userId: req.user.id, date });
+      if (existing) {
+        continue; // Skip if already exists for this day
+      }
 
-    res.status(201).json(doc);
+      const doc = await MealCount.create({
+        userId: req.user.id,
+        userName: req.user.username,
+        userPhone,
+        userTemple,
+        date,
+        fromDate,
+        toDate,
+        breakfast,
+        lunch,
+        dinner,
+        category,
+        billAmount,
+        mealStatus: 'requested',
+        paymentStatus: 'pending',
+        createdAt,
+        editableUntil
+      });
+      createdDocs.push(doc);
+    }
+
+    res.status(201).json(createdDocs.length === 1 ? createdDocs[0] : createdDocs);
   } catch (err) {
     console.error(err);
     if (err.message === 'Rates not configured') {
