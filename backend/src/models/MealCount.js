@@ -27,6 +27,10 @@ const mealCountSchema = new mongoose.Schema(
       enum: ['pending', 'paid', 'payment-approved'],
       default: 'pending'
     },
+    approvalToken: { type: String }, // Token for email-based approval
+    rejectionToken: { type: String }, // Token for email-based rejection
+    emailSent: { type: Boolean, default: false }, // Track if email was sent
+    adminEmail: { type: String }, // Admin email to whom the request was sent
     createdAt: { type: Date, default: () => new Date(), immutable: true },
     editableUntil: { type: Date, required: true }
   },

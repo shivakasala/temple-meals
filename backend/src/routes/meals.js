@@ -1,8 +1,10 @@
 import express from 'express';
 import MealCount from '../models/MealCount.js';
 import Setting from '../models/Setting.js';
+import User from '../models/User.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { nowUtc, calcEditableUntil, isEditable, isPastCutoffForNextDay, nextDayLocalDateString } from '../utils/time.js';
+import { generateApprovalToken, sendRequestEmailToAdmin, sendConfirmationEmailToUser } from '../utils/email.js';
 
 const router = express.Router();
 
@@ -50,6 +52,10 @@ router.post('/', async (req, res) => {
     const editableUntil = calcEditableUntil(createdAt);
     const billAmount = await calculateBill({ morningPrasadam, eveningPrasadam });
 
+    // Get all admin users for email
+    const admins = await User.find({ role: 'admin' }).select('email');
+    const adminEmails = admins.map(a => a.email).filter(e => e);
+
     // Create meal records for each day in range
     const createdDocs = [];
     for (const date of bookingDates) {
@@ -57,6 +63,10 @@ router.post('/', async (req, res) => {
       if (existing) {
         continue; // Skip if already exists for this day
       }
+
+      // Generate tokens for email-based approval
+      const approvalToken = generateApprovalToken();
+      const rejectionToken = generateApprovalToken();
 
       const doc = await MealCount.create({
         userId: req.user.id,
@@ -72,9 +82,27 @@ router.post('/', async (req, res) => {
         billAmount,
         mealStatus: 'requested',
         paymentStatus: 'pending',
+        approvalToken,
+        rejectionToken,
+        emailSent: false,
+        adminEmail: adminEmails[0],
         createdAt,
         editableUntil
       });
+
+      // Send email to admins
+      if (adminEmails.length > 0) {
+        const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const approveLink = `${baseUrl}/api/meals/${doc._id}/approve?token=${approvalToken}`;
+        const rejectLink = `${baseUrl}/api/meals/${doc._id}/reject?token=${rejectionToken}`;
+
+        // Send to first admin
+        const emailSent = await sendRequestEmailToAdmin(doc.toObject(), adminEmails[0], approveLink, rejectLink);
+        if (emailSent) {
+          await MealCount.updateOne({ _id: doc._id }, { emailSent: true });
+        }
+      }
+
       createdDocs.push(doc);
     }
 
@@ -249,6 +277,80 @@ router.get('/admin-report', authenticate, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to fetch report' });
+  }
+});
+
+// Email-based approval endpoint
+router.get('/:id/approve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({ message: 'Invalid approval token' });
+    }
+
+    const meal = await MealCount.findById(id);
+    if (!meal) {
+      return res.status(404).json({ message: 'Request not found' });
+    }
+
+    // Verify token
+    if (meal.approvalToken !== token) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    // Update status
+    meal.mealStatus = 'approved';
+    await meal.save();
+
+    // Send confirmation email to user
+    const user = await User.findById(meal.userId);
+    if (user && user.email) {
+      await sendConfirmationEmailToUser(meal, user.email, 'approved');
+    }
+
+    res.json({ message: 'Request approved successfully', meal });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to approve request' });
+  }
+});
+
+// Email-based rejection endpoint
+router.get('/:id/reject', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({ message: 'Invalid rejection token' });
+    }
+
+    const meal = await MealCount.findById(id);
+    if (!meal) {
+      return res.status(404).json({ message: 'Request not found' });
+    }
+
+    // Verify token
+    if (meal.rejectionToken !== token) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    // Update status
+    meal.mealStatus = 'rejected';
+    await meal.save();
+
+    // Send confirmation email to user
+    const user = await User.findById(meal.userId);
+    if (user && user.email) {
+      await sendConfirmationEmailToUser(meal, user.email, 'rejected');
+    }
+
+    res.json({ message: 'Request rejected successfully', meal });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to reject request' });
   }
 });
 
