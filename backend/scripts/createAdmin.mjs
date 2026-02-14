@@ -8,7 +8,7 @@ import User from '../src/models/User.js';
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/temple_meals';
 
 const username = process.argv[2] || 'admin';
-const password = process.argv[3] || 'StrongPassword123';
+const password = process.argv[3] || 'krishna@108';
 const templeName = process.argv[4] || 'Main Temple';
 
 async function main() {
