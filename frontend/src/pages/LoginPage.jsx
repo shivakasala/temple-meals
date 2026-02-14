@@ -24,6 +24,10 @@ export default function LoginPage() {
       console.log('[LOGIN] Response status:', res.status);
       console.log('[LOGIN] Response data:', res.data);
       
+      if (!res.data.user) {
+        throw new Error('Invalid response: missing user data');
+      }
+      
       setStoredAuth(res.data);
       
       if (res.data.user.role === 'admin') {
