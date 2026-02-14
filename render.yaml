@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: temple-meals-api
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: MONGO_URI
+        fromConfig: MONGO_URI
+      - key: JWT_SECRET
+        fromConfig: JWT_SECRET
+      - key: EMAIL_USER
+        fromConfig: EMAIL_USER
+      - key: EMAIL_PASS
+        fromConfig: EMAIL_PASS
+      - key: CORS_ORIGIN
+        fromConfig: CORS_ORIGIN
+
+  - type: web
+    name: temple-meals-frontend
+    env: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromConfig: VITE_API_URL
