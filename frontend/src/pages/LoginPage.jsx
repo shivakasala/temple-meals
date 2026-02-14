@@ -24,8 +24,9 @@ export default function LoginPage() {
       console.log('[LOGIN] Response status:', res.status);
       console.log('[LOGIN] Response data:', res.data);
       
-      if (!res.data.user) {
-        throw new Error('Invalid response: missing user data');
+      if (!res.data || !res.data.user) {
+        console.error('[LOGIN] Invalid response structure:', res.data);
+        throw new Error('Server returned invalid response');
       }
       
       setStoredAuth(res.data);
@@ -41,8 +42,16 @@ export default function LoginPage() {
       console.error('[LOGIN] Error:', err);
       console.error('[LOGIN] Error response:', err.response?.data);
       console.error('[LOGIN] Error status:', err.response?.status);
+      console.error('[LOGIN] Full error:', err);
       
-      const errorMsg = err.response?.data?.message || err.message || 'Login failed';
+      let errorMsg = 'Login failed';
+      if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      } else if (err.message) {
+        errorMsg = err.message;
+      } else if (err.code === 'ERR_NETWORK') {
+        errorMsg = 'Cannot connect to server. Check if backend is running.';
+      }
       console.log('[LOGIN] Showing error:', errorMsg);
       setError(errorMsg);
     } finally {
