@@ -15,6 +15,7 @@ export default function AdminDashboard() {
     username: '',
     password: '',
     templeName: '',
+    email: '',
     role: 'user',
   });
   const [rateForm, setRateForm] = useState({
@@ -451,6 +452,16 @@ export default function AdminDashboard() {
               value={userForm.password}
               onChange={handleUserFormChange}
               required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+            <input
+              type="email"
+              name="email"
+              value={userForm.email}
+              onChange={handleUserFormChange}
+              placeholder="admin@example.com"
             />
           </div>
           <div>
