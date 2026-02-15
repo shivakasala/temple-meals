@@ -112,7 +112,9 @@ router.post('/', async (req, res) => {
     if (err.message === 'Rates not configured') {
       return res.status(400).json({ message: err.message });
     }
-    res.status(500).json({ message: 'Failed to create meal request' });
+    // Return the underlying error message when available to aid debugging
+    const msg = err.message || 'Failed to create meal request';
+    res.status(500).json({ message: msg });
   }
 });
 
