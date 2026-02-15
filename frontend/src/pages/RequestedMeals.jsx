@@ -30,27 +30,20 @@ export default function RequestedMeals() {
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
+    return date.toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   // Filter meals
-  let filteredMeals = meals.filter(meal => {
+  const filteredMeals = meals.filter((meal) => {
     if (filter !== 'all' && meal.mealStatus !== filter) return false;
     if (searchName && !meal.userName.toLowerCase().includes(searchName.toLowerCase())) return false;
-    
     const mealDate = new Date(meal.date);
-    if (dateFrom) {
-      const fromDate = new Date(dateFrom);
-      if (mealDate < fromDate) return false;
-    }
-    if (dateTo) {
-      const toDate = new Date(dateTo);
-      if (mealDate > toDate) return false;
-    }
-    
+    if (dateFrom && mealDate < new Date(dateFrom)) return false;
+    if (dateTo && mealDate > new Date(dateTo)) return false;
     return true;
   });
 
@@ -58,203 +51,226 @@ export default function RequestedMeals() {
   const summary = {
     morning: filteredMeals.reduce((sum, m) => sum + (m.morningPrasadam || 0), 0),
     evening: filteredMeals.reduce((sum, m) => sum + (m.eveningPrasadam || 0), 0),
-    total: filteredMeals.reduce((sum, m) => sum + (m.billAmount || 0), 0)
+    total: filteredMeals.reduce((sum, m) => sum + (m.billAmount || 0), 0),
   };
 
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'requested': return 'text-yellow-600 font-semibold';
-      case 'approved': return 'text-green-600 font-semibold';
-      case 'rejected': return 'text-red-600 font-semibold';
-      default: return 'text-slate-600';
-    }
+  const getMealBadgeClass = (status) => {
+    if (status === 'approved') return 'badge-success';
+    if (status === 'rejected') return 'badge-danger';
+    return 'badge-warning';
   };
 
-  const getPaymentColor = (status) => {
-    switch(status) {
-      case 'paid': return 'text-green-600 font-semibold';
-      case 'pending': return 'text-yellow-600 font-semibold';
-      case 'payment-approved': return 'text-blue-600 font-semibold';
-      default: return 'text-slate-600';
-    }
+  const getPaymentBadgeClass = (status) => {
+    if (status === 'payment-approved') return 'badge-success';
+    if (status === 'paid') return 'badge-info';
+    return 'badge-warning';
   };
+
+  const clearFilters = () => {
+    setDateFrom('');
+    setDateTo('');
+    setSearchName('');
+    setFilter('all');
+  };
+
+  const hasActiveFilters = dateFrom || dateTo || searchName || filter !== 'all';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+            Your Prasadam Requests
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">View and manage all your meal bookings</p>
+        </div>
+        <Link to="/user" className="btn btn-primary no-underline hover:no-underline shrink-0">
+          + New Request
+        </Link>
+      </div>
+
+      {/* Filters */}
+      <div className="card">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
-            <h1 className="text-4xl font-bold text-slate-800">📋 Your Prasadam Requests</h1>
-            <p className="text-slate-600 mt-1">View and manage all your meal bookings</p>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+              From Date
+            </label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
           </div>
-          <Link 
-            to="/user" 
-            className="px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
-          >
-            + New Request
-          </Link>
-        </div>
-
-        {/* Search and Filter Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-500">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">From Date</label>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">To Date</label>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Name</label>
-              <input
-                type="text"
-                placeholder="User name"
-                value={searchName}
-                onChange={(e) => setSearchName(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All</option>
-                <option value="requested">Requested</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
-            <div className="flex items-end gap-2">
-              <button
-                onClick={() => {
-                  setDateFrom('');
-                  setDateTo('');
-                  setSearchName('');
-                  setFilter('all');
-                }}
-                className="w-full px-4 py-2 rounded-lg bg-slate-300 text-slate-800 font-medium hover:bg-slate-400 transition"
-              >
-                Clear
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+              To Date
+            </label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+              Name
+            </label>
+            <input
+              type="text"
+              placeholder="Search by name"
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+              Status
+            </label>
+            <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+              <option value="all">All</option>
+              <option value="requested">Requested</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div className="flex items-end">
+            {hasActiveFilters && (
+              <button onClick={clearFilters} className="btn btn-secondary w-full">
+                Clear Filters
               </button>
-            </div>
+            )}
           </div>
         </div>
+      </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-            <p className="text-red-700 font-medium">Error: {error}</p>
-          </div>
-        )}
+      {/* Error */}
+      {error && (
+        <div className="alert-error">
+          <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fillRule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <p>{error}</p>
+        </div>
+      )}
 
-        {/* Loading State */}
-        {loading && (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        )}
+      {/* Loading */}
+      {loading && (
+        <div className="flex justify-center py-16">
+          <span className="spinner !w-8 !h-8"></span>
+        </div>
+      )}
 
-        {/* Table Section */}
-        {!loading && (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden border-t-4 border-emerald-500">
-            {/* Table Header */}
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-sm">
-                <thead className="bg-gradient-to-r from-slate-100 to-slate-50 border-b-2 border-slate-300">
+      {/* Table */}
+      {!loading && (
+        <div className="card !p-0 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="table-base">
+              <thead>
+                <tr className="bg-slate-50/80">
+                  <th>Date</th>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Department</th>
+                  <th className="text-center">Category</th>
+                  <th className="text-center">9:00 AM</th>
+                  <th className="text-center">4:30 PM</th>
+                  <th className="text-right">Amount</th>
+                  <th className="text-center">Status</th>
+                  <th className="text-center">Payment</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredMeals.length === 0 ? (
                   <tr>
-                    <th className="px-4 py-3 text-left font-bold text-slate-700 border-r">Date</th>
-                    <th className="px-4 py-3 text-left font-bold text-slate-700 border-r">Name</th>
-                    <th className="px-4 py-3 text-left font-bold text-slate-700 border-r">Phone</th>
-                    <th className="px-4 py-3 text-left font-bold text-slate-700 border-r">Department</th>
-                    <th className="px-4 py-3 text-center font-bold text-slate-700 border-r">Category</th>
-                    <th className="px-4 py-3 text-center font-bold text-slate-700 border-r">9:00 AM Prasadam</th>
-                    <th className="px-4 py-3 text-center font-bold text-slate-700 border-r">4:30 PM Prasadam</th>
-                    <th className="px-4 py-3 text-right font-bold text-slate-700 border-r w-20">Amount</th>
-                    <th className="px-4 py-3 text-left font-bold text-slate-700 border-r">Meal Status</th>
-                    <th className="px-4 py-3 text-left font-bold text-slate-700">Payment</th>
+                    <td colSpan="10">
+                      <div className="empty-state">
+                        <p className="empty-state-icon">📭</p>
+                        <p className="empty-state-title">No requests found</p>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filteredMeals.length === 0 ? (
-                    <tr>
-                      <td colSpan="10" className="px-4 py-8 text-center text-slate-500">
-                        <p className="text-lg">No requests found</p>
+                ) : (
+                  filteredMeals.map((meal) => (
+                    <tr key={meal._id}>
+                      <td className="font-medium text-slate-800 whitespace-nowrap">
+                        {formatDate(meal.date)}
+                      </td>
+                      <td className="text-slate-700">{meal.userName}</td>
+                      <td className="text-slate-500 font-mono text-xs">{meal.userPhone}</td>
+                      <td className="text-slate-600">{meal.userTemple}</td>
+                      <td className="text-center">
+                        <span
+                          className={`badge ${
+                            meal.category === 'IOS' ? 'badge-info' : 'badge-neutral'
+                          }`}
+                        >
+                          {meal.category}
+                        </span>
+                      </td>
+                      <td className="text-center font-semibold text-blue-600">
+                        {meal.morningPrasadam || 0}
+                      </td>
+                      <td className="text-center font-semibold text-emerald-600">
+                        {meal.eveningPrasadam || 0}
+                      </td>
+                      <td className="text-right font-semibold text-slate-800">
+                        ₹{meal.billAmount || 0}
+                      </td>
+                      <td className="text-center">
+                        <span className={`badge ${getMealBadgeClass(meal.mealStatus)}`}>
+                          {meal.mealStatus}
+                        </span>
+                      </td>
+                      <td className="text-center">
+                        <span className={`badge ${getPaymentBadgeClass(meal.paymentStatus)}`}>
+                          {meal.paymentStatus}
+                        </span>
                       </td>
                     </tr>
-                  ) : (
-                    filteredMeals.map((meal, idx) => (
-                      <tr key={meal._id} className={`border-b ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-blue-50 transition`}>
-                        <td className="px-4 py-3 border-r text-slate-900 font-medium">{formatDate(meal.date)}</td>
-                        <td className="px-4 py-3 border-r text-slate-900">{meal.userName}</td>
-                        <td className="px-4 py-3 border-r text-slate-700 font-mono text-xs">{meal.userPhone}</td>
-                        <td className="px-4 py-3 border-r text-slate-700">{meal.userTemple}</td>
-                        <td className="px-4 py-3 border-r text-center">
-                          <span className={`px-2 py-1 rounded text-xs font-bold ${
-                            meal.category === 'IOS' 
-                              ? 'bg-blue-100 text-blue-800' 
-                              : 'bg-purple-100 text-purple-800'
-                          }`}>
-                            {meal.category}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 border-r text-center font-bold text-blue-600">{meal.morningPrasadam || 0}</td>
-                        <td className="px-4 py-3 border-r text-center font-bold text-emerald-600">{meal.eveningPrasadam || 0}</td>
-                        <td className="px-4 py-3 border-r text-right font-bold text-slate-900">₹{meal.billAmount || 0}</td>
-                        <td className={`px-4 py-3 border-r font-semibold ${getStatusColor(meal.mealStatus)}`}>
-                          {meal.mealStatus?.toUpperCase()}
-                        </td>
-                        <td className={`px-4 py-3 font-semibold ${getPaymentColor(meal.paymentStatus)}`}>
-                          {meal.paymentStatus?.toUpperCase()}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-            {/* Summary Row */}
-            {filteredMeals.length > 0 && (
-              <div className="bg-gradient-to-r from-slate-50 to-white border-t-2 border-slate-300 p-4">
-                <div className="flex items-center justify-between font-bold text-slate-800">
-                  <span>Summary:</span>
-                  <span className="flex gap-8">
-                    <span>9:00 AM: <span className="text-blue-600">{summary.morning}</span></span>
-                    <span>4:30 PM: <span className="text-emerald-600">{summary.evening}</span></span>
-                    <span>Total Amount: <span className="text-slate-900">₹{summary.total}</span></span>
+          {/* Summary */}
+          {filteredMeals.length > 0 && (
+            <div className="border-t border-slate-200 bg-slate-50/80 px-6 py-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-semibold text-slate-600">
+                  {filteredMeals.length} request{filteredMeals.length !== 1 ? 's' : ''}
+                </span>
+                <div className="flex gap-6 text-slate-600">
+                  <span>
+                    9:00 AM: <span className="font-bold text-blue-600">{summary.morning}</span>
+                  </span>
+                  <span>
+                    4:30 PM: <span className="font-bold text-emerald-600">{summary.evening}</span>
+                  </span>
+                  <span>
+                    Total: <span className="font-bold text-slate-800">₹{summary.total}</span>
                   </span>
                 </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
+      )}
 
-        {/* Refresh Button */}
+      {/* Refresh */}
+      {!loading && (
         <div className="flex justify-center">
-          <button
-            onClick={loadMeals}
-            className="px-6 py-3 rounded-lg bg-slate-600 text-white font-medium hover:bg-slate-700 transition"
-          >
-            🔄 Refresh
+          <button onClick={loadMeals} className="btn btn-secondary">
+            ↻ Refresh
           </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

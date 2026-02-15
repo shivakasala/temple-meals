@@ -14,45 +14,30 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    
-    console.log('[LOGIN] Attempting login with:', { username, password: '***' });
-    
+
     try {
-      console.log('[LOGIN] Posting to /auth/login');
       const res = await api.post('/auth/login', { username, password });
-      
-      console.log('[LOGIN] Response status:', res.status);
-      console.log('[LOGIN] Response data:', res.data);
-      
+
       if (!res.data || !res.data.user) {
-        console.error('[LOGIN] Invalid response structure:', res.data);
         throw new Error('Server returned invalid response');
       }
-      
+
       setStoredAuth(res.data);
-      
+
       if (res.data.user.role === 'admin') {
-        console.log('[LOGIN] Admin login successful, redirecting to /admin');
         navigate('/admin');
       } else {
-        console.log('[LOGIN] User login successful, redirecting to /user');
         navigate('/user');
       }
     } catch (err) {
-      console.error('[LOGIN] Error:', err);
-      console.error('[LOGIN] Error response:', err.response?.data);
-      console.error('[LOGIN] Error status:', err.response?.status);
-      console.error('[LOGIN] Full error:', err);
-      
       let errorMsg = 'Login failed';
       if (err.response?.data?.message) {
         errorMsg = err.response.data.message;
-      } else if (err.message) {
-        errorMsg = err.message;
       } else if (err.code === 'ERR_NETWORK') {
         errorMsg = 'Cannot connect to server. Check if backend is running.';
+      } else if (err.message) {
+        errorMsg = err.message;
       }
-      console.log('[LOGIN] Showing error:', errorMsg);
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -60,66 +45,81 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="card max-w-md w-full">
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-3">🏛️</div>
-          <h1 className="text-2xl font-bold text-slate-800">Online Temple Prasadam Portal</h1>
-          <p className="text-slate-500 text-sm mt-1">Prasadam booking & management system</p>
+    <div className="min-h-[75vh] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        {/* Logo & Title */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-saffron-400 to-saffron-600 text-3xl shadow-lg shadow-saffron-500/20 mb-4">
+            🏛️
+          </div>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+            Prasadam Portal
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">Sign in to manage your bookings</p>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Username</label>
-            <input
-              type="text"
-              autoFocus
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              placeholder="Enter your username"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
-            <input
-              type="password"
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="Enter your password"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="spinner"></span> Signing in...
-              </span>
-            ) : (
-              'Sign In'
+        {/* Login Card */}
+        <div className="card !p-0 overflow-hidden">
+          <div className="p-6 space-y-5">
+            {error && (
+              <div className="alert-error">
+                <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <p>{error}</p>
+              </div>
             )}
-          </button>
-        </form>
 
-        <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-500 text-center">
-          Contact your admin for credentials
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  placeholder="Enter your username"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="Enter your password"
+                />
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full btn btn-primary !py-3">
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="spinner !w-4 !h-4 !border-t-white !border-saffron-300"></span>
+                    Signing in…
+                  </span>
+                ) : (
+                  'Sign In'
+                )}
+              </button>
+            </form>
+          </div>
+
+          <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 text-center">
+            <p className="text-xs text-slate-400">Contact your admin for credentials</p>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
