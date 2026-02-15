@@ -151,9 +151,12 @@ export default function UserDashboard() {
       if (fromDateObj <= toDateObj) {
         const range = generateDateRange(updatedForm.fromDate, updatedForm.toDate);
         setDateRangeDisplay(range);
-        const newQuantities = {};
+        // Preserve existing meal selections while adding new dates
+        const newQuantities = { ...form.dayQuantities };
         range.forEach((item) => {
-          newQuantities[item.date] = { morning: 0, evening: 0 };
+          if (!newQuantities[item.date]) {
+            newQuantities[item.date] = { morning: 0, evening: 0 };
+          }
         });
         setForm((f) => ({ ...f, dayQuantities: newQuantities }));
       }
