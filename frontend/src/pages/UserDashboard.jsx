@@ -142,25 +142,34 @@ export default function UserDashboard() {
 
     setError('');
 
-    const updatedForm = { ...form, [name]: value };
-    setForm(updatedForm);
+    const updatedFromDate = name === 'fromDate' ? value : form.fromDate;
+    const updatedToDate = name === 'toDate' ? value : form.toDate;
 
-    if (updatedForm.fromDate && updatedForm.toDate) {
-      const fromDateObj = new Date(updatedForm.fromDate);
-      const toDateObj = new Date(updatedForm.toDate);
+    if (updatedFromDate && updatedToDate) {
+      const fromDateObj = new Date(updatedFromDate);
+      const toDateObj = new Date(updatedToDate);
       if (fromDateObj <= toDateObj) {
-        const range = generateDateRange(updatedForm.fromDate, updatedForm.toDate);
+        const range = generateDateRange(updatedFromDate, updatedToDate);
         setDateRangeDisplay(range);
-        // Preserve existing meal selections while adding new dates
-        const newQuantities = { ...form.dayQuantities };
-        range.forEach((item) => {
-          if (!newQuantities[item.date]) {
-            newQuantities[item.date] = { morning: 0, evening: 0 };
-          }
+        // Update form with new dates and preserve existing meal selections
+        setForm((f) => {
+          const newQuantities = { ...f.dayQuantities };
+          range.forEach((item) => {
+            if (!newQuantities[item.date]) {
+              newQuantities[item.date] = { morning: 0, evening: 0 };
+            }
+          });
+          return {
+            ...f,
+            fromDate: updatedFromDate,
+            toDate: updatedToDate,
+            dayQuantities: newQuantities
+          };
         });
-        setForm((f) => ({ ...f, dayQuantities: newQuantities }));
       }
     } else {
+      // Single date selected, just update that field
+      setForm((f) => ({ ...f, [name]: value }));
       setDateRangeDisplay([]);
     }
   };
@@ -238,7 +247,17 @@ export default function UserDashboard() {
         }
       });
 
+      console.log('Booking records to submit:', records);
+      console.log('Day quantities:', form.dayQuantities);
+
+      if (records.length === 0) {
+        setError('No meals selected. Please select at least one meal for a date.');
+        setSubmitting(false);
+        return;
+      }
+
       for (const record of records) {
+        console.log('Submitting record:', record);
         await api.post('/meals', record);
       }
 
@@ -254,7 +273,10 @@ export default function UserDashboard() {
       });
       setDateRangeDisplay([]);
       await loadMine();
+      setError(''); // Clear any errors on success
     } catch (err) {
+      console.error('Submit error:', err);
+      console.error('Error response:', err.response?.data);
       setError(err.response?.data?.message || 'Failed to submit meal request');
     } finally {
       setSubmitting(false);
