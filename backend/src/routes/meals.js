@@ -2,10 +2,13 @@ import express from 'express';
 import MealCount from '../models/MealCount.js';
 import Setting from '../models/Setting.js';
 import User from '../models/User.js';
+import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { nowUtc, calcEditableUntil, isEditable, isPastCutoffForNextDay, nextDayLocalDateString } from '../utils/time.js';
 import { generateApprovalToken, sendRequestEmailToAdmin, sendConfirmationEmailToUser } from '../utils/email.js';
 
 const router = express.Router();
+
+router.use(authenticate);
 
 // Helper to calculate bill on server to prevent tampering
 const calculateBill = async ({ morningPrasadam, eveningPrasadam }) => {
@@ -19,7 +22,7 @@ const calculateBill = async ({ morningPrasadam, eveningPrasadam }) => {
 // Create meal request for next day
 router.post('/', async (req, res) => {
   try {
-    const { userId = 'default-user', userName = 'Guest', morningPrasadam = 0, eveningPrasadam = 0, userPhone, userTemple, category = 'IOS', fromDate, toDate } = req.body;
+    const { morningPrasadam = 0, eveningPrasadam = 0, userPhone, userTemple, category = 'IOS', fromDate, toDate } = req.body;
     
     if (morningPrasadam < 0 || eveningPrasadam < 0) {
       return res.status(400).json({ message: 'Counts must be non-negative' });
@@ -56,7 +59,7 @@ router.post('/', async (req, res) => {
     // Create meal records for each day in range
     const createdDocs = [];
     for (const date of bookingDates) {
-      const existing = await MealCount.findOne({ userId, date });
+      const existing = await MealCount.findOne({ userId: req.user.id, date });
       if (existing) {
         continue; // Skip if already exists for this day
       }
@@ -66,8 +69,8 @@ router.post('/', async (req, res) => {
       const rejectionToken = generateApprovalToken();
 
       const doc = await MealCount.create({
-        userId,
-        userName,
+        userId: req.user.id,
+        userName: req.user.username,
         userPhone,
         userTemple,
         date,
@@ -115,8 +118,8 @@ router.post('/', async (req, res) => {
 
 // Get current user's meal requests (optionally by date)
 router.get('/mine', async (req, res) => {
-  const { date, userId = 'default-user' } = req.query;
-  const filter = { userId };
+  const { date } = req.query;
+  const filter = { userId: req.user.id };
   if (date) filter.date = date;
   const items = await MealCount.find(filter).sort({ date: -1, createdAt: -1 }).lean();
   const withDerived = items.map((m) => ({
@@ -127,7 +130,7 @@ router.get('/mine', async (req, res) => {
 });
 
 // Admin: list all meals with optional filters
-router.get('/admin', async (req, res) => {
+router.get('/admin', requireAdmin, async (req, res) => {
   const { date, userId } = req.query;
   const filter = {};
   if (date) filter.date = date;
@@ -136,8 +139,8 @@ router.get('/admin', async (req, res) => {
   res.json(items);
 });
 
-// Get all meals (list)
-router.get('/', async (req, res) => {
+// Get all meals (list) - admin only
+router.get('/', requireAdmin, async (req, res) => {
   const items = await MealCount.find().sort({ date: -1, createdAt: -1 }).lean();
   res.json(items);
 });
@@ -147,7 +150,9 @@ router.put('/:id', async (req, res) => {
   try {
     const meal = await MealCount.findById(req.params.id);
     if (!meal) return res.status(404).json({ message: 'Meal request not found' });
-    
+    if (String(meal.userId) !== req.user.id) {
+      return res.status(403).json({ message: 'Cannot edit others requests' });
+    }
     if (!isEditable(meal)) {
       return res.status(400).json({ message: 'Editing window expired or request not in requested state' });
     }
@@ -177,7 +182,9 @@ router.post('/:id/mark-paid', async (req, res) => {
   try {
     const meal = await MealCount.findById(req.params.id);
     if (!meal) return res.status(404).json({ message: 'Meal request not found' });
-    
+    if (String(meal.userId) !== req.user.id) {
+      return res.status(403).json({ message: 'Cannot update others requests' });
+    }
     if (meal.paymentStatus === 'payment-approved') {
       return res.status(400).json({ message: 'Payment already approved' });
     }
@@ -191,7 +198,7 @@ router.post('/:id/mark-paid', async (req, res) => {
 });
 
 // Admin approves/rejects meal request (before preparation)
-router.post('/:id/admin-meal-status', async (req, res) => {
+router.post('/:id/admin-meal-status', requireAdmin, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['approved', 'rejected', 'requested'].includes(status)) {
@@ -209,7 +216,7 @@ router.post('/:id/admin-meal-status', async (req, res) => {
 });
 
 // Admin approves payment
-router.post('/:id/admin-payment-status', async (req, res) => {
+router.post('/:id/admin-payment-status', requireAdmin, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['payment-approved', 'pending', 'paid'].includes(status)) {
@@ -227,7 +234,7 @@ router.post('/:id/admin-payment-status', async (req, res) => {
 });
 
 // Admin dashboard summary: totals per day, total amount collected
-router.get('/admin-summary', async (req, res) => {
+router.get('/admin-summary', requireAdmin, async (req, res) => {
   try {
     const { date } = req.query;
     const match = {};
@@ -265,7 +272,7 @@ router.get('/admin-summary', async (req, res) => {
 });
 
 // Admin daily report (basic JSON; can be exported to CSV client-side)
-router.get('/admin-report', async (req, res) => {
+router.get('/admin-report', requireAdmin, async (req, res) => {
   try {
     const { date } = req.query;
     if (!date) {

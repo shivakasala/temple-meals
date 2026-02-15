@@ -10,6 +10,7 @@ import mongoose from 'mongoose';
 import userRoutes from './routes/users.js';
 import settingsRoutes from './routes/settings.js';
 import mealRoutes from './routes/meals.js';
+import authRoutes from './routes/auth.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -24,6 +25,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/meals', mealRoutes);

@@ -1,10 +1,11 @@
 import express from 'express';
 import Setting from '../models/Setting.js';
+import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// public to read current rates
-router.get('/', async (req, res) => {
+// public for authenticated users to read current rates
+router.get('/', authenticate, async (req, res) => {
   const setting = await Setting.findOne().sort({ createdAt: -1 }).lean();
   if (!setting) {
     return res.status(404).json({ message: 'Rates not configured yet' });
@@ -15,8 +16,8 @@ router.get('/', async (req, res) => {
   });
 });
 
-// public to create/update rates
-router.post('/', async (req, res) => {
+// admin-only to create/update rates
+router.post('/', authenticate, requireAdmin, async (req, res) => {
   try {
     const { morningRate, eveningRate } = req.body;
     if (
