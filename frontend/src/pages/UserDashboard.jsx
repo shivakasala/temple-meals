@@ -45,10 +45,51 @@ export default function UserDashboard() {
   useEffect(() => {
     loadRates();
     loadMine();
+    // Initialize dateRangeDisplay with only next day
+    const nextDay = getTomorrowDateString();
+    setDateRangeDisplay([{ date: nextDay }]);
+    setForm((f) => ({
+      ...f,
+      fromDate: nextDay,
+      toDate: nextDay,
+      dayQuantities: { [nextDay]: { morning: 0, evening: 0 } }
+    }));
   }, []);
+
+  // Check if it's past 4 PM in local time
+  const isPastBookingCutoff = () => {
+    const now = new Date();
+    try {
+      const fmt = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Kolkata', // temple timezone
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      const parts = fmt.formatToParts(now);
+      const get = (type) => parts.find((p) => p.type === type)?.value;
+      const hour = Number(get('hour'));
+      const minute = Number(get('minute'));
+      // 4 PM = 16:00
+      return hour > 16 || (hour === 16 && minute > 0);
+    } catch {
+      // Fallback: treat cutoff as 10:30 UTC (16:00 IST)
+      const utcHour = now.getUTCHours();
+      const utcMinute = now.getUTCMinutes();
+      return utcHour > 10 || (utcHour === 10 && utcMinute > 30);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // Phone input: only allow digits, limit to 10
+    if (name === 'userPhone') {
+      const digitsOnly = value.replace(/\D/g, '').slice(0, 10);
+      setForm((f) => ({ ...f, [name]: digitsOnly }));
+      return;
+    }
+
     setForm((f) => ({
       ...f,
       [name]:
@@ -58,40 +99,14 @@ export default function UserDashboard() {
     }));
   };
 
-  const generateDateRange = (from, to) => {
-    if (!from || !to) return [];
-    const dates = [];
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
-    for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      dates.push({ date: `${year}-${month}-${day}` });
-    }
-    return dates;
-  };
-
-  const handleDateChange = (e) => {
-    const { name, value } = e.target;
-    const updatedForm = { ...form, [name]: value };
-    setForm(updatedForm);
-
-    if (updatedForm.fromDate && updatedForm.toDate) {
-      const fromDateObj = new Date(updatedForm.fromDate);
-      const toDateObj = new Date(updatedForm.toDate);
-      if (fromDateObj <= toDateObj) {
-        const range = generateDateRange(updatedForm.fromDate, updatedForm.toDate);
-        setDateRangeDisplay(range);
-        const newQuantities = {};
-        range.forEach((item) => {
-          newQuantities[item.date] = { morning: 0, evening: 0 };
-        });
-        setForm((f) => ({ ...f, dayQuantities: newQuantities }));
-      }
-    } else {
-      setDateRangeDisplay([]);
-    }
+  // Get tomorrow's date as minimum/maximum (next-day-only booking)
+  const getTomorrowDateString = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const day = String(tomorrow.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const toggleMeal = (date, mealType) => {
@@ -109,8 +124,20 @@ export default function UserDashboard() {
     e.preventDefault();
     setError('');
 
+    // Check 4 PM cutoff
+    if (isPastBookingCutoff()) {
+      setError('Bookings are closed after 4:00 PM. Next day booking window will open tomorrow after 4:00 PM.');
+      return;
+    }
+
     if (!form.name || !form.userPhone || !form.userTemple) {
       setError('Please fill in name, phone, and temple/department');
+      return;
+    }
+
+    // Validate phone: must be exactly 10 digits
+    if (form.userPhone.length !== 10 || !/^\d{10}$/.test(form.userPhone)) {
+      setError('Phone number must be exactly 10 digits');
       return;
     }
 
@@ -127,32 +154,30 @@ export default function UserDashboard() {
       const morningRate = rates.morningRate || 0;
       const eveningRate = rates.eveningRate || 0;
       const numDevotees = form.numDevotees || 1;
+      const nextDayDate = getTomorrowDateString();
 
-      const records = [];
-      Object.entries(form.dayQuantities).forEach(([date, quantities]) => {
-        const morningCount = quantities?.morning || 0;
-        const eveningCount = quantities?.evening || 0;
-        if (morningCount > 0 || eveningCount > 0) {
-          const dailyBillAmount =
-            (morningCount * morningRate + eveningCount * eveningRate) * numDevotees;
-          records.push({
-            name: form.name,
-            userPhone: form.userPhone,
-            userTemple: form.userTemple,
-            morningPrasadam: morningCount * numDevotees,
-            eveningPrasadam: eveningCount * numDevotees,
-            category: form.category,
-            date,
-            fromDate: date,
-            toDate: date,
-            billAmount: dailyBillAmount,
-          });
-        }
-      });
+      // Single record for next day only
+      const quantities = form.dayQuantities[nextDayDate] || { morning: 0, evening: 0 };
+      const morningCount = quantities.morning || 0;
+      const eveningCount = quantities.evening || 0;
 
-      for (const record of records) {
-        await api.post('/meals', record);
-      }
+      const dailyBillAmount =
+        (morningCount * morningRate + eveningCount * eveningRate) * numDevotees;
+
+      const record = {
+        name: form.name,
+        userPhone: form.userPhone,
+        userTemple: form.userTemple,
+        morningPrasadam: morningCount * numDevotees,
+        eveningPrasadam: eveningCount * numDevotees,
+        category: form.category,
+        date: nextDayDate,
+        fromDate: nextDayDate,
+        toDate: nextDayDate,
+        billAmount: dailyBillAmount,
+      };
+
+      await api.post('/meals', record);
 
       setForm({
         name: '',
@@ -318,11 +343,15 @@ export default function UserDashboard() {
                     <input
                       type="tel"
                       name="userPhone"
-                      placeholder="+91 XXXXX XXXXX"
+                      placeholder="10 digits only"
+                      maxLength="10"
                       value={form.userPhone}
                       onChange={handleChange}
                       required
                     />
+                    <p className="text-xs text-slate-400 mt-1">
+                      {form.userPhone.length}/10 digits
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -364,40 +393,21 @@ export default function UserDashboard() {
                 </div>
               </fieldset>
 
-              {/* Step 3: Booking Period */}
+              {/* Step 3: Next Day Booking */}
               <fieldset className="space-y-3">
                 <legend className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
                   <span className="w-5 h-5 rounded-full bg-saffron-500 text-white flex items-center justify-center text-[10px] font-bold">
                     3
                   </span>
-                  Booking Period
+                  Booking (Next Day Only)
                 </legend>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Start Date
-                    </label>
-                    <input
-                      type="date"
-                      name="fromDate"
-                      value={form.fromDate}
-                      onChange={handleDateChange}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      name="toDate"
-                      value={form.toDate}
-                      onChange={handleDateChange}
-                      min={form.fromDate}
-                      required
-                    />
-                  </div>
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-900 font-medium">
+                    📅 Bookings available until <strong>4:00 PM today</strong> for <strong>tomorrow's</strong> meal.
+                  </p>
+                  <p className="text-xs text-blue-700 mt-2">
+                    ⏰ After 4:00 PM, booking window closes and will reopen the next day.
+                  </p>
                 </div>
               </fieldset>
 
@@ -491,7 +501,7 @@ export default function UserDashboard() {
               {/* Submit */}
               <button
                 type="submit"
-                disabled={submitting || calculateCost() === 0 || !form.fromDate || !form.toDate}
+                disabled={submitting || calculateCost() === 0}
                 className="w-full btn btn-primary !py-3 !text-base"
               >
                 {submitting ? (
@@ -500,7 +510,7 @@ export default function UserDashboard() {
                     Processing…
                   </span>
                 ) : (
-                  'Confirm Booking'
+                  'Confirm Booking for Tomorrow'
                 )}
               </button>
             </form>
