@@ -245,9 +245,12 @@ router.get('/admin-summary', requireAdmin, async (req, res) => {
       {
         $group: {
           _id: '$date',
-          totalBreakfast: { $sum: '$breakfast' },
-          totalLunch: { $sum: '$lunch' },
-          totalDinner: { $sum: '$dinner' },
+          // sum fields based on MealCount schema (morningPrasadam/eveningPrasadam)
+          totalMorning: { $sum: '$morningPrasadam' },
+          totalEvening: { $sum: '$eveningPrasadam' },
+          // keep legacy fields for compatibility
+          totalBreakfast: { $sum: '$morningPrasadam' },
+          totalDinner: { $sum: '$eveningPrasadam' },
           totalAmount: { $sum: '$billAmount' }
         }
       },
