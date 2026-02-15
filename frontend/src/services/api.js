@@ -5,21 +5,30 @@ import { getAuthToken } from './auth';
 const getApiUrl = () => {
   // In development, use relative /api (proxied by Vite)
   if (import.meta.env.DEV) {
+    console.log('[API] DEV mode: using Vite proxy /api');
     return '/api';
   }
   
-  // In production, use the VITE_API_URL environment variable or fallback to relative path
+  // In production, use the VITE_API_URL environment variable
   const apiUrl = import.meta.env.VITE_API_URL;
+  console.log('[API] Production mode - VITE_API_URL:', apiUrl);
+  
   if (apiUrl) {
-    return apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`;
+    const finalUrl = apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`;
+    console.log('[API] Using backend URL:', finalUrl);
+    return finalUrl;
   }
   
   // Fallback: use the current domain's /api endpoint
+  console.log('[API] No VITE_API_URL set, using current domain /api');
   return '/api';
 };
 
+const baseUrl = getApiUrl();
+console.log('[API] Initialized with baseURL:', baseUrl);
+
 const api = axios.create({
-  baseURL: getApiUrl()
+  baseURL: baseUrl
 });
 
 api.interceptors.request.use((config) => {
@@ -27,7 +36,7 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  console.log('[API] Request:', config.method?.toUpperCase(), config.baseURL + config.url, { headers: config.headers });
+  console.log('[API] Request:', config.method?.toUpperCase(), config.baseURL + config.url);
   return config;
 });
 
@@ -37,7 +46,7 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.log('[API] Error response:', error.response?.status, error.response?.data, error.message);
+    console.error('[API] Error:', error.response?.status, error.response?.data || error.message);
     return Promise.reject(error);
   }
 );
