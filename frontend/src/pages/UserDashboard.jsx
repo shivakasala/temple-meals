@@ -256,31 +256,56 @@ export default function UserDashboard() {
         return;
       }
 
-      for (const record of records) {
-        console.log('Submitting record:', record);
-        await api.post('/meals', record);
+      // Submit all records in parallel and collect results
+      const settleResults = await Promise.allSettled(
+        records.map((record) => api.post('/meals', record))
+      );
+
+      const failedDates = [];
+      const successfulDates = [];
+
+      settleResults.forEach((res, idx) => {
+        const date = records[idx].date;
+        if (res.status === 'fulfilled') {
+          successfulDates.push(date);
+        } else {
+          const err = res.reason;
+          const msg = err?.response?.data?.message || err?.message || 'Request failed';
+          console.error('Failed for date', date, msg);
+          failedDates.push(`${date} (${msg})`);
+        }
+      });
+
+      console.log('Successful dates:', successfulDates);
+      console.log('Failed dates:', failedDates);
+
+      if (failedDates.length > 0) {
+        setError(`Partially submitted. Failed for dates: ${failedDates.join(', ')}. Please retry those dates.`);
+      } else {
+        setError('');
       }
 
-      setForm({
-        name: '',
-        userPhone: '',
-        userTemple: '',
-        numDevotees: 1,
-        category: 'IOS',
-        fromDate: '',
-        toDate: '',
-        dayQuantities: {},
-      });
-      setDateRangeDisplay([]);
-      await loadMine();
-      setError(''); // Clear any errors on success
+      if (successfulDates.length > 0) {
+        // Clear form only when at least one succeeded
+        setForm({
+          name: '',
+          userPhone: '',
+          userTemple: '',
+          numDevotees: 1,
+          category: 'IOS',
+          fromDate: '',
+          toDate: '',
+          dayQuantities: {},
+        });
+        setDateRangeDisplay([]);
+        await loadMine();
+      }
     } catch (err) {
       console.error('Submit error:', err);
       console.error('Error response:', err.response?.data);
       setError(err.response?.data?.message || 'Failed to submit meal request');
     } finally {
       setSubmitting(false);
-    }
   };
 
   const openEditModal = (meal) => {
