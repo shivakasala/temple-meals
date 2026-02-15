@@ -45,15 +45,6 @@ export default function UserDashboard() {
   useEffect(() => {
     loadRates();
     loadMine();
-    // Initialize dateRangeDisplay with only next day
-    const nextDay = getTomorrowDateString();
-    setDateRangeDisplay([{ date: nextDay }]);
-    setForm((f) => ({
-      ...f,
-      fromDate: nextDay,
-      toDate: nextDay,
-      dayQuantities: { [nextDay]: { morning: 0, evening: 0 } }
-    }));
   }, []);
 
   // Check if it's past 4 PM in local time
@@ -99,7 +90,7 @@ export default function UserDashboard() {
     }));
   };
 
-  // Get tomorrow's date as minimum/maximum (next-day-only booking)
+  // Get tomorrow's date as minimum (prevent today and past dates)
   const getTomorrowDateString = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -107,6 +98,51 @@ export default function UserDashboard() {
     const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
     const day = String(tomorrow.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  };
+
+  const generateDateRange = (from, to) => {
+    if (!from || !to) return [];
+    const dates = [];
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      dates.push({ date: `${year}-${month}-${day}` });
+    }
+    return dates;
+  };
+
+  const handleDateChange = (e) => {
+    const { name, value } = e.target;
+    const minAllowedDate = getTomorrowDateString();
+
+    // Prevent selecting today or past dates
+    if (value && value < minAllowedDate) {
+      setError('Cannot book for today or past dates. Only future dates from tomorrow onwards are allowed.');
+      return;
+    }
+    setError('');
+
+    const updatedForm = { ...form, [name]: value };
+    setForm(updatedForm);
+
+    if (updatedForm.fromDate && updatedForm.toDate) {
+      const fromDateObj = new Date(updatedForm.fromDate);
+      const toDateObj = new Date(updatedForm.toDate);
+      if (fromDateObj <= toDateObj) {
+        const range = generateDateRange(updatedForm.fromDate, updatedForm.toDate);
+        setDateRangeDisplay(range);
+        const newQuantities = {};
+        range.forEach((item) => {
+          newQuantities[item.date] = { morning: 0, evening: 0 };
+        });
+        setForm((f) => ({ ...f, dayQuantities: newQuantities }));
+      }
+    } else {
+      setDateRangeDisplay([]);
+    }
   };
 
   const toggleMeal = (date, mealType) => {
@@ -158,30 +194,32 @@ export default function UserDashboard() {
       const morningRate = rates.morningRate || 0;
       const eveningRate = rates.eveningRate || 0;
       const numDevotees = form.numDevotees || 1;
-      const nextDayDate = getTomorrowDateString();
 
-      // Single record for next day only
-      const quantities = form.dayQuantities[nextDayDate] || { morning: 0, evening: 0 };
-      const morningCount = quantities.morning || 0;
-      const eveningCount = quantities.evening || 0;
+      const records = [];
+      Object.entries(form.dayQuantities).forEach(([date, quantities]) => {
+        const morningCount = quantities?.morning || 0;
+        const eveningCount = quantities?.evening || 0;
+        if (morningCount > 0 || eveningCount > 0) {
+          const dailyBillAmount =
+            (morningCount * morningRate + eveningCount * eveningRate) * numDevotees;
+          records.push({
+            name: form.name,
+            userPhone: form.userPhone,
+            userTemple: form.userTemple,
+            morningPrasadam: morningCount * numDevotees,
+            eveningPrasadam: eveningCount * numDevotees,
+            category: form.category,
+            date,
+            fromDate: form.fromDate,
+            toDate: form.toDate,
+            billAmount: dailyBillAmount,
+          });
+        }
+      });
 
-      const dailyBillAmount =
-        (morningCount * morningRate + eveningCount * eveningRate) * numDevotees;
-
-      const record = {
-        name: form.name,
-        userPhone: form.userPhone,
-        userTemple: form.userTemple,
-        morningPrasadam: morningCount * numDevotees,
-        eveningPrasadam: eveningCount * numDevotees,
-        category: form.category,
-        date: nextDayDate,
-        fromDate: nextDayDate,
-        toDate: nextDayDate,
-        billAmount: dailyBillAmount,
-      };
-
-      await api.post('/meals', record);
+      for (const record of records) {
+        await api.post('/meals', record);
+      }
 
       setForm({
         name: '',
@@ -397,21 +435,44 @@ export default function UserDashboard() {
                 </div>
               </fieldset>
 
-              {/* Step 3: Next Day Booking */}
+              {/* Step 3: Booking Period (future dates only) */}
               <fieldset className="space-y-3">
                 <legend className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
                   <span className="w-5 h-5 rounded-full bg-saffron-500 text-white flex items-center justify-center text-[10px] font-bold">
                     3
                   </span>
-                  Booking (Next Day Only)
+                  Booking Period
                 </legend>
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-900 font-medium">
-                    📅 Bookings available until <strong>4:00 PM today</strong> for <strong>tomorrow's</strong> meal.
-                  </p>
-                  <p className="text-xs text-blue-700 mt-2">
-                    ⏰ After 4:00 PM, booking window closes and will reopen the next day.
-                  </p>
+                <p className="text-xs text-slate-600 mb-3">
+                  ⏰ Only future dates allowed (from tomorrow onwards). Bookings close at 4:00 PM daily.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      name="fromDate"
+                      value={form.fromDate}
+                      onChange={handleDateChange}
+                      min={getTomorrowDateString()}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      name="toDate"
+                      value={form.toDate}
+                      onChange={handleDateChange}
+                      min={form.fromDate || getTomorrowDateString()}
+                      required
+                    />
+                  </div>
                 </div>
               </fieldset>
 
@@ -505,7 +566,7 @@ export default function UserDashboard() {
               {/* Submit */}
               <button
                 type="submit"
-                disabled={submitting || calculateCost() === 0}
+                disabled={submitting || calculateCost() === 0 || !form.fromDate || !form.toDate}
                 className="w-full btn btn-primary !py-3 !text-base"
               >
                 {submitting ? (
@@ -514,7 +575,7 @@ export default function UserDashboard() {
                     Processing…
                   </span>
                 ) : (
-                  'Confirm Booking for Tomorrow'
+                  'Confirm Booking'
                 )}
               </button>
             </form>
