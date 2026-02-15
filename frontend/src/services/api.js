@@ -1,9 +1,25 @@
 import axios from 'axios';
 import { getAuthToken } from './auth';
 
-// Use relative `/api` so local Vite dev server proxies correctly
+// Determine API base URL
+const getApiUrl = () => {
+  // In development, use relative /api (proxied by Vite)
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
+  
+  // In production, use the VITE_API_URL environment variable or fallback to relative path
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (apiUrl) {
+    return apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`;
+  }
+  
+  // Fallback: use the current domain's /api endpoint
+  return '/api';
+};
+
 const api = axios.create({
-  baseURL: '/api'
+  baseURL: getApiUrl()
 });
 
 api.interceptors.request.use((config) => {
