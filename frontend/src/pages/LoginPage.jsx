@@ -12,12 +12,11 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Prevent double submission
+
     if (loading) {
       return;
     }
-    
+
     setError('');
     setLoading(true);
 
@@ -35,7 +34,6 @@ export default function LoginPage() {
         userData: res.data?.user
       });
 
-      // Validate response structure
       if (!res.data) {
         console.error('[LOGIN] Response data is missing/null:', res.data);
         throw new Error('Server returned empty response');
@@ -67,7 +65,7 @@ export default function LoginPage() {
       });
 
       let errorMsg = 'Login failed';
-      
+
       if (err.response?.status === 401) {
         errorMsg = 'Invalid username or password';
       } else if (err.response?.status === 400) {
@@ -83,19 +81,20 @@ export default function LoginPage() {
       } else if (err.message) {
         errorMsg = err.message;
       }
-      
+
       console.error('[LOGIN] Setting error:', errorMsg);
       setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
+
+  return (
     <div className="min-h-[75vh] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        {/* Logo & Title */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-saffron-400 to-saffron-600 text-3xl shadow-lg shadow-saffron-500/20 mb-4">
-            🏛️
+            &#127974;
           </div>
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
             Prasadam Portal
@@ -103,7 +102,6 @@ export default function LoginPage() {
           <p className="text-slate-500 text-sm mt-1">Sign in to manage your bookings</p>
         </div>
 
-        {/* Login Card */}
         <div className="card !p-0 overflow-hidden">
           <div className="p-6 space-y-5">
             {error && (
@@ -151,7 +149,7 @@ export default function LoginPage() {
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="spinner !w-4 !h-4 !border-t-white !border-saffron-300"></span>
-                    Signing in…
+                    Signing in
                   </span>
                 ) : (
                   'Sign In'
