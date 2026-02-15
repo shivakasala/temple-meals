@@ -7,7 +7,6 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import mongoose from 'mongoose';
 
-import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import settingsRoutes from './routes/settings.js';
 import mealRoutes from './routes/meals.js';
@@ -25,7 +24,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/meals', mealRoutes);
