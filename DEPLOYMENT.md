@@ -1,10 +1,10 @@
 # Temple Meals - Deployment Guide
 
-## Deployment Setup (Vercel Frontend + Render/Railway Backend)
+## Deployment Setup (Render Backend + Render Frontend)
 
-### Step 1: Deploy Backend to Render or Railway
+### Step 1: Deploy Backend to Render
 
-#### Option A: Render.com (Recommended)
+#### Render.com (Recommended)
 1. Go to [render.com](https://render.com)
 2. Sign up with GitHub account
 3. Click "New +" → "Web Service"
@@ -20,7 +20,7 @@
    MONGO_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/templeDB?retryWrites=true&w=majority
    JWT_SECRET=<generate-strong-random-string>
    PORT=4000
-   CORS_ORIGIN=https://<your-vercel-domain>.vercel.app
+   CORS_ORIGIN=https://temple-meals-frontend.onrender.com
    ```
 7. Deploy
 
@@ -32,27 +32,28 @@
 5. Add same environment variables as above
 6. Deploy
 
-### Step 2: Deploy Frontend to Vercel
+### Step 2: Deploy Frontend to Render (Static Site)
 
-1. Go to [vercel.com](https://vercel.com)
-2. Import your GitHub repository
-3. Configure:
-   - **Framework:** Vite
+1. Go to [render.com](https://render.com)
+2. Click "New +" → "Static Site"
+3. Connect your GitHub repository
+4. Configure:
+   - **Name:** temple-meals-frontend
    - **Root directory:** `frontend`
-   - **Build command:** `npm run build`
-   - **Output directory:** `dist`
-4. Add environment variable:
+   - **Build command:** `npm install && npm run build`
+   - **Publish directory:** `dist`
+5. Add environment variable:
    ```
-   VITE_API_URL=https://<your-backend-url>.onrender.com
+   VITE_API_URL=https://<your-backend-service-name>.onrender.com
    ```
-   (Replace with your actual Render/Railway backend URL)
-5. Deploy
+   (Replace `<your-backend-service-name>` with your actual backend service name)
+6. Deploy
 
 ### Step 3: Verify Deployment
 
-- Frontend: `https://<your-vercel-domain>.vercel.app`
-- Backend API: `https://<your-backend-url>.onrender.com/api/health`
-- Login with: `admin` / `secret`
+- Frontend: `https://temple-meals-frontend.onrender.com`
+- Backend API: `https://temple-meals-api.onrender.com/api/health`
+- Login with: `admin` / `krishna@108`
 
 ### MongoDB Atlas Setup (if not already done)
 
