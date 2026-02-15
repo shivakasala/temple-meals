@@ -306,7 +306,7 @@ export default function UserDashboard() {
       setError(err.response?.data?.message || 'Failed to submit meal request');
     } finally {
       setSubmitting(false);
-  };
+    }
 
   const openEditModal = (meal) => {
     setEditingMeal(meal);
@@ -752,4 +752,6 @@ export default function UserDashboard() {
       </Modal>
     </div>
   );
+}
+
 }
