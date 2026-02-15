@@ -135,9 +135,13 @@ export default function UserDashboard() {
       return;
     }
 
-    // Validate phone: must be exactly 10 digits
+    // Validate phone: must be exactly 10 digits and start with 6, 7, 8, or 9
     if (form.userPhone.length !== 10 || !/^\d{10}$/.test(form.userPhone)) {
       setError('Phone number must be exactly 10 digits');
+      return;
+    }
+    if (!/^[6789]/.test(form.userPhone)) {
+      setError('Phone number must start with 6, 7, 8, or 9 (valid Indian mobile number)');
       return;
     }
 
@@ -343,7 +347,7 @@ export default function UserDashboard() {
                     <input
                       type="tel"
                       name="userPhone"
-                      placeholder="10 digits only"
+                      placeholder="10 digits (start with 6,7,8,9)"
                       maxLength="10"
                       value={form.userPhone}
                       onChange={handleChange}
