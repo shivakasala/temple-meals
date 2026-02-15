@@ -29,28 +29,31 @@ router.post('/bootstrap-admin', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    console.log('[AUTH] Login attempt for username:', username);
+    console.log('[AUTH-DEBUG] Login attempt for username:', username);
     
     if (!username || !password) {
-      console.log('[AUTH] Missing credentials');
+      console.log('[AUTH-DEBUG] Response: Missing credentials (400)');
       return res.status(400).json({ message: 'username and password are required' });
     }
     
     const user = await User.findOne({ username });
     if (!user) {
-      console.log('[AUTH] User not found:', username);
+      console.log('[AUTH-DEBUG] User not found:', username);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+    
+    console.log('[AUTH-DEBUG] User found:', username, 'with role:', user.role);
     
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
-      console.log('[AUTH] Invalid password for user:', username);
+      console.log('[AUTH-DEBUG] Invalid password for user:', username);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     
-    console.log('[AUTH] Login successful for user:', username, 'Role:', user.role);
+    console.log('[AUTH-DEBUG] Login successful for user:', username, 'Role:', user.role);
     const token = generateToken(user);
-    res.json({
+    
+    const responsePayload = {
       token,
       user: {
         id: user._id,
@@ -58,9 +61,17 @@ router.post('/login', async (req, res) => {
         role: user.role,
         templeName: user.templeName
       }
+    };
+    
+    console.log('[AUTH-DEBUG] Sending response:', {
+      hasToken: !!responsePayload.token,
+      hasUser: !!responsePayload.user,
+      user: responsePayload.user
     });
+    
+    res.status(200).json(responsePayload);
   } catch (err) {
-    console.error('[AUTH] Login error:', err);
+    console.error('[AUTH-DEBUG] Login error:', err.message, err.stack);
     res.status(500).json({ message: 'Login failed', error: err.message });
   }
 });

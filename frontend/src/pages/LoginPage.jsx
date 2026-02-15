@@ -12,39 +12,84 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (loading) {
+      return;
+    }
+    
     setError('');
     setLoading(true);
 
+    console.log('[LOGIN] Starting login attempt for:', username);
+
     try {
+      console.log('[LOGIN] Sending login request...');
       const res = await api.post('/auth/login', { username, password });
 
-      if (!res.data || !res.data.user) {
-        throw new Error('Server returned invalid response');
+      console.log('[LOGIN] Got response:', {
+        status: res.status,
+        data: res.data,
+        hasToken: !!res.data?.token,
+        hasUser: !!res.data?.user,
+        userData: res.data?.user
+      });
+
+      // Validate response structure
+      if (!res.data) {
+        console.error('[LOGIN] Response data is missing/null:', res.data);
+        throw new Error('Server returned empty response');
+      }
+      if (!res.data.user) {
+        console.error('[LOGIN] User object missing in response:', res.data);
+        throw new Error('Server response missing user data. Got: ' + JSON.stringify(res.data));
+      }
+      if (!res.data.token) {
+        console.error('[LOGIN] Token missing in response:', res.data);
+        throw new Error('Server response missing authentication token');
       }
 
+      console.log('[LOGIN] Validation passed, storing auth...');
       setStoredAuth(res.data);
 
+      console.log('[LOGIN] Login successful, redirecting to:', res.data.user.role);
       if (res.data.user.role === 'admin') {
         navigate('/admin');
       } else {
         navigate('/user');
       }
     } catch (err) {
+      console.error('[LOGIN] Error caught:', {
+        message: err.message,
+        code: err.code,
+        status: err.response?.status,
+        data: err.response?.data
+      });
+
       let errorMsg = 'Login failed';
-      if (err.response?.data?.message) {
+      
+      if (err.response?.status === 401) {
+        errorMsg = 'Invalid username or password';
+      } else if (err.response?.status === 400) {
+        errorMsg = err.response.data?.message || 'Please provide username and password';
+      } else if (err.response?.status === 500) {
+        errorMsg = 'Server error. Please try again later.';
+      } else if (err.response?.data?.message) {
         errorMsg = err.response.data.message;
       } else if (err.code === 'ERR_NETWORK') {
-        errorMsg = 'Cannot connect to server. Check if backend is running.';
+        errorMsg = 'Cannot connect to server. Check if backend is running on http://localhost:4000';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMsg = 'Request timeout. Server is not responding.';
       } else if (err.message) {
         errorMsg = err.message;
       }
+      
+      console.error('[LOGIN] Setting error:', errorMsg);
       setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
-
-  return (
     <div className="min-h-[75vh] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         {/* Logo & Title */}
