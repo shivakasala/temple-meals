@@ -6,9 +6,15 @@ const transporter = nodemailer.createTransport({
   service: process.env.EMAIL_SERVICE || 'gmail',
   auth: {
     user: process.env.EMAIL_USER || 'kasalashiva9392@gmail.com',
-    pass: process.env.EMAIL_PASSWORD || 'kcyv mnts tjvi spfz'
+    // support both EMAIL_PASS and EMAIL_PASSWORD env var names
+    pass: process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || ''
   }
 });
+
+// Log transporter verification at startup to help debug configuration
+transporter.verify()
+  .then(() => console.log('Email transporter verified'))
+  .catch((err) => console.warn('Email transporter verification failed:', err && err.message));
 
 // Generate approval token
 export const generateApprovalToken = () => {
@@ -59,9 +65,10 @@ export const sendRequestEmailToAdmin = async (meal, adminEmail, approveLink, rej
       subject: `New Prasadam Request - ${meal.date} - ${meal.userName}`,
       html: emailContent
     });
+    console.log('Request email sent to', adminEmail);
     return true;
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error sending request email to', adminEmail, ':', error && error.message);
     return false;
   }
 };
@@ -98,9 +105,10 @@ export const sendConfirmationEmailToUser = async (meal, userEmail, status) => {
       subject: `Prasadam Request ${statusText} - ${meal.date}`,
       html: emailContent
     });
+    console.log('Confirmation email sent to', userEmail);
     return true;
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error sending confirmation email to', userEmail, ':', error && error.message);
     return false;
   }
 };
