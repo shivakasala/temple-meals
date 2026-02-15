@@ -34,17 +34,20 @@ export default function LoginPage() {
         userData: res.data?.user
       });
 
-      if (!res.data) {
-        console.error('[LOGIN] Response data is missing/null:', res.data);
-        throw new Error('Server returned empty response');
+      // Check for data existence FIRST
+      if (!res || !res.data) {
+        console.error('[LOGIN] No response or response data:', res);
+        throw new Error('Server returned no data. Check backend is running.');
+      }
+
+      // Check for required fields
+      if (!res.data.token) {
+        console.error('[LOGIN] Token missing:', res.data);
+        throw new Error('Invalid server response: missing token');
       }
       if (!res.data.user) {
-        console.error('[LOGIN] User object missing in response:', res.data);
-        throw new Error('Server response missing user data. Got: ' + JSON.stringify(res.data));
-      }
-      if (!res.data.token) {
-        console.error('[LOGIN] Token missing in response:', res.data);
-        throw new Error('Server response missing authentication token');
+        console.error('[LOGIN] User missing:', res.data);
+        throw new Error('Invalid server response: missing user object');
       }
 
       console.log('[LOGIN] Validation passed, storing auth...');
