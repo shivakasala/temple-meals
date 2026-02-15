@@ -100,6 +100,16 @@ export default function UserDashboard() {
     return `${year}-${month}-${day}`;
   };
 
+  // Get day after tomorrow's date
+  const getDayAfterTomorrowDateString = () => {
+    const dayAfterTomorrow = new Date();
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+    const year = dayAfterTomorrow.getFullYear();
+    const month = String(dayAfterTomorrow.getMonth() + 1).padStart(2, '0');
+    const day = String(dayAfterTomorrow.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const generateDateRange = (from, to) => {
     if (!from || !to) return [];
     const dates = [];
@@ -123,6 +133,13 @@ export default function UserDashboard() {
       setError('Cannot book for today or past dates. Only future dates from tomorrow onwards are allowed.');
       return;
     }
+
+    // If after 4 PM, prevent selecting tomorrow
+    if (name === 'fromDate' && value === minAllowedDate && isPastBookingCutoff()) {
+      setError('Cannot book for tomorrow after 4:00 PM. Please select day after tomorrow or later.');
+      return;
+    }
+
     setError('');
 
     const updatedForm = { ...form, [name]: value };
@@ -160,12 +177,6 @@ export default function UserDashboard() {
     e.preventDefault();
     setError('');
 
-    // Check 4 PM cutoff
-    if (isPastBookingCutoff()) {
-      setError('Bookings are closed after 4:00 PM. Next day booking window will open tomorrow after 4:00 PM.');
-      return;
-    }
-
     if (!form.name || !form.userPhone || !form.userTemple) {
       setError('Please fill in name, phone, and temple/department');
       return;
@@ -178,6 +189,13 @@ export default function UserDashboard() {
     }
     if (!/^[6789]/.test(form.userPhone)) {
       setError('Invalid number');
+      return;
+    }
+
+    // Check if booking starts from tomorrow and if it's past 4 PM
+    const tomorrowDate = getTomorrowDateString();
+    if (form.fromDate === tomorrowDate && isPastBookingCutoff()) {
+      setError('Cannot book for tomorrow after 4:00 PM. Please book for day after tomorrow or later.');
       return;
     }
 
@@ -441,7 +459,7 @@ export default function UserDashboard() {
                   Booking Period
                 </legend>
                 <p className="text-xs text-slate-600 mb-3">
-                  ⏰ Only future dates allowed (from tomorrow onwards). Bookings close at 4:00 PM daily.
+                  ⏰ Bookings close at 4:00 PM daily. After 4 PM, earliest available booking is day after tomorrow.
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -453,7 +471,7 @@ export default function UserDashboard() {
                       name="fromDate"
                       value={form.fromDate}
                       onChange={handleDateChange}
-                      min={getTomorrowDateString()}
+                      min={isPastBookingCutoff() ? getDayAfterTomorrowDateString() : getTomorrowDateString()}
                       required
                     />
                   </div>
@@ -466,7 +484,7 @@ export default function UserDashboard() {
                       name="toDate"
                       value={form.toDate}
                       onChange={handleDateChange}
-                      min={form.fromDate || getTomorrowDateString()}
+                      min={form.fromDate || (isPastBookingCutoff() ? getDayAfterTomorrowDateString() : getTomorrowDateString())}
                       required
                     />
                   </div>
