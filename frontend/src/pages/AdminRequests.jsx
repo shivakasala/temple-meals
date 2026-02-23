@@ -84,6 +84,8 @@ export default function AdminRequests() {
     return 'badge-warning';
   };
 
+  const getCategoryLabel = (category) => (category === 'IOS' ? 'IYS' : category);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -219,7 +221,7 @@ export default function AdminRequests() {
                           meal.category === 'IOS' ? 'badge-info' : 'badge-neutral'
                         }`}
                       >
-                        {meal.category}
+                        {getCategoryLabel(meal.category)}
                       </span>
                     </td>
                     <td className="text-center font-semibold text-blue-600">

@@ -9,6 +9,7 @@ import { getStoredAuth, clearAuth } from './services/auth';
 
 const Layout = ({ children }) => {
   const auth = getStoredAuth();
+  const user = auth?.user;
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -44,7 +45,7 @@ const Layout = ({ children }) => {
 
           {/* Desktop Nav */}
           <nav className="hidden sm:flex items-center gap-1">
-            {auth && auth.user?.role === 'admin' && (
+            {user?.role === 'admin' && (
               <>
                 <NavLink to="/admin" className={navLinkClass} end>
                   Dashboard
@@ -54,7 +55,7 @@ const Layout = ({ children }) => {
                 </NavLink>
               </>
             )}
-            {auth && auth.user?.role === 'user' && (
+            {user?.role === 'user' && (
               <>
                 <NavLink to="/user" className={navLinkClass}>
                   Book Meal
@@ -64,14 +65,14 @@ const Layout = ({ children }) => {
                 </NavLink>
               </>
             )}
-            {auth ? (
+            {user ? (
               <div className="flex items-center gap-3 ml-3 pl-3 border-l border-slate-200">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-saffron-100 flex items-center justify-center text-xs font-bold text-saffron-700 uppercase">
-                    {auth.user.username.charAt(0)}
+                    {user.username?.charAt(0) || 'U'}
                   </div>
                   <span className="text-sm text-slate-600 font-medium">
-                    {auth.user.username}
+                    {user.username || 'User'}
                   </span>
                 </div>
                 <button
@@ -92,7 +93,7 @@ const Layout = ({ children }) => {
           </nav>
 
           {/* Mobile menu button */}
-          {auth && (
+          {user && (
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="sm:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
@@ -109,9 +110,9 @@ const Layout = ({ children }) => {
         </div>
 
         {/* Mobile Nav */}
-        {auth && mobileMenuOpen && (
+        {user && mobileMenuOpen && (
           <div className="sm:hidden border-t border-slate-100 bg-white px-4 py-3 space-y-1">
-            {auth.user?.role === 'admin' && (
+            {user.role === 'admin' && (
               <>
                 <NavLink to="/admin" className={navLinkClass} end onClick={() => setMobileMenuOpen(false)}>
                   Dashboard
@@ -121,7 +122,7 @@ const Layout = ({ children }) => {
                 </NavLink>
               </>
             )}
-            {auth.user?.role === 'user' && (
+            {user.role === 'user' && (
               <>
                 <NavLink to="/user" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
                   Book Meal
@@ -134,9 +135,9 @@ const Layout = ({ children }) => {
             <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full bg-saffron-100 flex items-center justify-center text-xs font-bold text-saffron-700 uppercase">
-                  {auth.user.username.charAt(0)}
+                  {user.username?.charAt(0) || 'U'}
                 </div>
-                <span className="text-sm text-slate-600 font-medium">{auth.user.username}</span>
+                <span className="text-sm text-slate-600 font-medium">{user.username || 'User'}</span>
               </div>
               <button
                 onClick={handleLogout}
@@ -166,7 +167,7 @@ const Layout = ({ children }) => {
 
 const ProtectedRoute = ({ children, role }) => {
   const auth = getStoredAuth();
-  if (!auth) return <Navigate to="/login" replace />;
+  if (!auth?.user) return <Navigate to="/login" replace />;
   if (role && auth.user?.role !== role) return <Navigate to="/login" replace />;
   return children;
 };

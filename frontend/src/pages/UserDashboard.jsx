@@ -307,6 +307,7 @@ export default function UserDashboard() {
     } finally {
       setSubmitting(false);
     }
+  };
 
   const openEditModal = (meal) => {
     setEditingMeal(meal);
@@ -360,14 +361,67 @@ export default function UserDashboard() {
   const getMealBadgeClass = (status) => {
     if (status === 'approved' || status === 'completed') return 'badge-success';
     if (status === 'rejected') return 'badge-danger';
+    if (status === 'mixed') return 'badge-neutral';
     return 'badge-warning';
   };
 
   const getPaymentBadgeClass = (status) => {
     if (status === 'payment-approved') return 'badge-success';
     if (status === 'paid') return 'badge-info';
+    if (status === 'mixed') return 'badge-neutral';
     return 'badge-warning';
   };
+
+  const getDerivedStatus = (statuses) => {
+    const uniqueStatuses = [...new Set(statuses.filter(Boolean))];
+    if (uniqueStatuses.length === 0) return 'pending';
+    if (uniqueStatuses.length === 1) return uniqueStatuses[0];
+    return 'mixed';
+  };
+
+  const groupedRequests = Object.values(
+    meals.reduce((acc, meal) => {
+      const from = meal.fromDate || meal.date;
+      const to = meal.toDate || meal.date;
+      const key = [from, to, meal.userName || '', meal.userPhone || '', meal.userTemple || '', meal.category || ''].join('|');
+
+      if (!acc[key]) {
+        acc[key] = {
+          key,
+          fromDate: from,
+          toDate: to,
+          userName: meal.userName,
+          userPhone: meal.userPhone,
+          userTemple: meal.userTemple,
+          category: meal.category,
+          totalMorningPrasadam: 0,
+          totalEveningPrasadam: 0,
+          totalBillAmount: 0,
+          mealStatuses: [],
+          paymentStatuses: [],
+          latestCreatedAt: meal.createdAt
+        };
+      }
+
+      acc[key].totalMorningPrasadam += meal.morningPrasadam || 0;
+      acc[key].totalEveningPrasadam += meal.eveningPrasadam || 0;
+      acc[key].totalBillAmount += meal.billAmount || 0;
+      acc[key].mealStatuses.push(meal.mealStatus);
+      acc[key].paymentStatuses.push(meal.paymentStatus);
+
+      if (new Date(meal.createdAt) > new Date(acc[key].latestCreatedAt)) {
+        acc[key].latestCreatedAt = meal.createdAt;
+      }
+
+      return acc;
+    }, {})
+  )
+    .map((group) => ({
+      ...group,
+      mealStatus: getDerivedStatus(group.mealStatuses),
+      paymentStatus: getDerivedStatus(group.paymentStatuses)
+    }))
+    .sort((a, b) => new Date(b.latestCreatedAt) - new Date(a.latestCreatedAt));
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -551,7 +605,7 @@ export default function UserDashboard() {
                 </legend>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { value: 'IOS', label: 'Individual' },
+                    { value: 'IOS', label: 'IYS' },
                     { value: 'COMMUNITY', label: 'Community' },
                   ].map((opt) => (
                     <label
@@ -651,7 +705,7 @@ export default function UserDashboard() {
       {/* Recent Requests */}
       <section className="card">
         <h2 className="section-title mb-4">Recent Requests</h2>
-        {meals.length === 0 ? (
+        {groupedRequests.length === 0 ? (
           <div className="empty-state">
             <p className="empty-state-icon">📋</p>
             <p className="empty-state-text">
@@ -660,53 +714,35 @@ export default function UserDashboard() {
           </div>
         ) : (
           <div className="space-y-3">
-            {meals.map((m) => {
-              const editable = m.editingAllowed;
-              const canMarkPaid = m.paymentStatus !== 'payment-approved';
-
+            {groupedRequests.map((request) => {
               return (
-                <div key={m._id} className="p-4 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors">
+                <div key={request.key} className="p-4 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">{m.date}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">₹{m.billAmount}</p>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {request.fromDate} to {request.toDate}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">₹{request.totalBillAmount}</p>
                     </div>
                     <div className="flex gap-1.5">
-                      <span className={`badge ${getMealBadgeClass(m.mealStatus)}`}>
-                        {m.mealStatus}
+                      <span className={`badge ${getMealBadgeClass(request.mealStatus)}`}>
+                        {request.mealStatus}
                       </span>
-                      <span className={`badge ${getPaymentBadgeClass(m.paymentStatus)}`}>
-                        {m.paymentStatus}
+                      <span className={`badge ${getPaymentBadgeClass(request.paymentStatus)}`}>
+                        {request.paymentStatus}
                       </span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     <div className="bg-blue-50/60 p-2.5 rounded-lg text-sm">
-                      <span className="text-slate-500">9:00 AM:</span>{' '}
-                      <span className="font-semibold text-blue-600">{m.morningPrasadam}</span>
+                      <span className="text-slate-500">Total 9:00 AM:</span>{' '}
+                      <span className="font-semibold text-blue-600">{request.totalMorningPrasadam}</span>
                     </div>
                     <div className="bg-emerald-50/60 p-2.5 rounded-lg text-sm">
-                      <span className="text-slate-500">4:30 PM:</span>{' '}
-                      <span className="font-semibold text-emerald-600">{m.eveningPrasadam}</span>
+                      <span className="text-slate-500">Total 4:30 PM:</span>{' '}
+                      <span className="font-semibold text-emerald-600">{request.totalEveningPrasadam}</span>
                     </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      disabled={!editable}
-                      onClick={() => openEditModal(m)}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      disabled={!canMarkPaid}
-                      onClick={() => handleMarkPaid(m)}
-                      className="btn btn-sm bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                    >
-                      Mark Paid
-                    </button>
                   </div>
                 </div>
               );
@@ -752,6 +788,4 @@ export default function UserDashboard() {
       </Modal>
     </div>
   );
-}
-
 }

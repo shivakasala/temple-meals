@@ -37,34 +37,102 @@ export default function RequestedMeals() {
     });
   };
 
-  // Filter meals
-  const filteredMeals = meals.filter((meal) => {
-    if (filter !== 'all' && meal.mealStatus !== filter) return false;
-    if (searchName && !meal.userName.toLowerCase().includes(searchName.toLowerCase())) return false;
-    const mealDate = new Date(meal.date);
-    if (dateFrom && mealDate < new Date(dateFrom)) return false;
-    if (dateTo && mealDate > new Date(dateTo)) return false;
+  const getDerivedStatus = (statuses) => {
+    if (!statuses.length) return 'pending';
+    const unique = [...new Set(statuses)];
+    if (unique.length === 1) return unique[0];
+    return 'mixed';
+  };
+
+  const requestGroups = Object.values(
+    meals.reduce((acc, meal) => {
+      const fromDateValue = meal.fromDate || meal.date;
+      const toDateValue = meal.toDate || meal.date;
+      const key = [
+        fromDateValue,
+        toDateValue,
+        meal.userName || '',
+        meal.userPhone || '',
+        meal.userTemple || '',
+        meal.category || '',
+      ].join('|');
+
+      if (!acc[key]) {
+        acc[key] = {
+          _id: key,
+          fromDate: fromDateValue,
+          toDate: toDateValue,
+          userName: meal.userName,
+          userPhone: meal.userPhone,
+          userTemple: meal.userTemple,
+          category: meal.category,
+          totalMorningPrasadam: 0,
+          totalEveningPrasadam: 0,
+          totalBillAmount: 0,
+          mealStatuses: [],
+          paymentStatuses: [],
+          requestCount: 0,
+        };
+      }
+
+      acc[key].totalMorningPrasadam += meal.morningPrasadam || 0;
+      acc[key].totalEveningPrasadam += meal.eveningPrasadam || 0;
+      acc[key].totalBillAmount += meal.billAmount || 0;
+      acc[key].mealStatuses.push(meal.mealStatus);
+      acc[key].paymentStatuses.push(meal.paymentStatus);
+      acc[key].requestCount += 1;
+
+      return acc;
+    }, {})
+  ).map((group) => ({
+    ...group,
+    mealStatus: getDerivedStatus(group.mealStatuses),
+    paymentStatus: getDerivedStatus(group.paymentStatuses),
+  }));
+
+  // Filter grouped requests
+  const filteredRequests = requestGroups.filter((request) => {
+    const matchesStatus =
+      filter === 'all' || request.mealStatus === filter || request.mealStatuses.includes(filter);
+    if (!matchesStatus) return false;
+
+    if (
+      searchName &&
+      !(request.userName || '').toLowerCase().includes(searchName.toLowerCase())
+    ) {
+      return false;
+    }
+
+    const requestFrom = new Date(request.fromDate);
+    const requestTo = new Date(request.toDate);
+
+    if (dateFrom && requestTo < new Date(dateFrom)) return false;
+    if (dateTo && requestFrom > new Date(dateTo)) return false;
     return true;
   });
 
   // Calculate summary
   const summary = {
-    morning: filteredMeals.reduce((sum, m) => sum + (m.morningPrasadam || 0), 0),
-    evening: filteredMeals.reduce((sum, m) => sum + (m.eveningPrasadam || 0), 0),
-    total: filteredMeals.reduce((sum, m) => sum + (m.billAmount || 0), 0),
+    morning: filteredRequests.reduce((sum, r) => sum + (r.totalMorningPrasadam || 0), 0),
+    evening: filteredRequests.reduce((sum, r) => sum + (r.totalEveningPrasadam || 0), 0),
+    total: filteredRequests.reduce((sum, r) => sum + (r.totalBillAmount || 0), 0),
   };
 
   const getMealBadgeClass = (status) => {
     if (status === 'approved') return 'badge-success';
     if (status === 'rejected') return 'badge-danger';
+    if (status === 'mixed') return 'badge-neutral';
     return 'badge-warning';
   };
 
   const getPaymentBadgeClass = (status) => {
     if (status === 'payment-approved') return 'badge-success';
     if (status === 'paid') return 'badge-info';
+    if (status === 'mixed') return 'badge-neutral';
     return 'badge-warning';
   };
+
+  const getCategoryLabel = (category) => (category === 'IOS' ? 'IYS' : category);
 
   const clearFilters = () => {
     setDateFrom('');
@@ -173,20 +241,21 @@ export default function RequestedMeals() {
             <table className="table-base">
               <thead>
                 <tr className="bg-slate-50/80">
-                  <th>Date</th>
+                  <th>From</th>
+                  <th>To</th>
                   <th>Name</th>
                   <th>Phone</th>
                   <th>Department</th>
                   <th className="text-center">Category</th>
-                  <th className="text-center">9:00 AM</th>
-                  <th className="text-center">4:30 PM</th>
-                  <th className="text-right">Amount</th>
+                  <th className="text-center">Total 9:00 AM</th>
+                  <th className="text-center">Total 4:30 PM</th>
+                  <th className="text-right">Total Amount</th>
                   <th className="text-center">Status</th>
                   <th className="text-center">Payment</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredMeals.length === 0 ? (
+                {filteredRequests.length === 0 ? (
                   <tr>
                     <td colSpan="10">
                       <div className="empty-state">
@@ -196,40 +265,43 @@ export default function RequestedMeals() {
                     </td>
                   </tr>
                 ) : (
-                  filteredMeals.map((meal) => (
-                    <tr key={meal._id}>
+                  filteredRequests.map((request) => (
+                    <tr key={request._id}>
                       <td className="font-medium text-slate-800 whitespace-nowrap">
-                        {formatDate(meal.date)}
+                        {formatDate(request.fromDate)}
                       </td>
-                      <td className="text-slate-700">{meal.userName}</td>
-                      <td className="text-slate-500 font-mono text-xs">{meal.userPhone}</td>
-                      <td className="text-slate-600">{meal.userTemple}</td>
+                      <td className="font-medium text-slate-800 whitespace-nowrap">
+                        {formatDate(request.toDate)}
+                      </td>
+                      <td className="text-slate-700">{request.userName}</td>
+                      <td className="text-slate-500 font-mono text-xs">{request.userPhone}</td>
+                      <td className="text-slate-600">{request.userTemple}</td>
                       <td className="text-center">
                         <span
                           className={`badge ${
-                            meal.category === 'IOS' ? 'badge-info' : 'badge-neutral'
+                            request.category === 'IOS' ? 'badge-info' : 'badge-neutral'
                           }`}
                         >
-                          {meal.category}
+                          {getCategoryLabel(request.category)}
                         </span>
                       </td>
                       <td className="text-center font-semibold text-blue-600">
-                        {meal.morningPrasadam || 0}
+                        {request.totalMorningPrasadam || 0}
                       </td>
                       <td className="text-center font-semibold text-emerald-600">
-                        {meal.eveningPrasadam || 0}
+                        {request.totalEveningPrasadam || 0}
                       </td>
                       <td className="text-right font-semibold text-slate-800">
-                        ₹{meal.billAmount || 0}
+                        ₹{request.totalBillAmount || 0}
                       </td>
                       <td className="text-center">
-                        <span className={`badge ${getMealBadgeClass(meal.mealStatus)}`}>
-                          {meal.mealStatus}
+                        <span className={`badge ${getMealBadgeClass(request.mealStatus)}`}>
+                          {request.mealStatus}
                         </span>
                       </td>
                       <td className="text-center">
-                        <span className={`badge ${getPaymentBadgeClass(meal.paymentStatus)}`}>
-                          {meal.paymentStatus}
+                        <span className={`badge ${getPaymentBadgeClass(request.paymentStatus)}`}>
+                          {request.paymentStatus}
                         </span>
                       </td>
                     </tr>
@@ -240,11 +312,11 @@ export default function RequestedMeals() {
           </div>
 
           {/* Summary */}
-          {filteredMeals.length > 0 && (
+          {filteredRequests.length > 0 && (
             <div className="border-t border-slate-200 bg-slate-50/80 px-6 py-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="font-semibold text-slate-600">
-                  {filteredMeals.length} request{filteredMeals.length !== 1 ? 's' : ''}
+                  {filteredRequests.length} request{filteredRequests.length !== 1 ? 's' : ''}
                 </span>
                 <div className="flex gap-6 text-slate-600">
                   <span>

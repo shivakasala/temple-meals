@@ -22,7 +22,16 @@ const calculateBill = async ({ morningPrasadam, eveningPrasadam }) => {
 // Create meal request for next day
 router.post('/', async (req, res) => {
   try {
-    const { morningPrasadam = 0, eveningPrasadam = 0, userPhone, userTemple, category = 'IOS', fromDate, toDate } = req.body;
+    const {
+      morningPrasadam = 0,
+      eveningPrasadam = 0,
+      userPhone,
+      userTemple,
+      category = 'IOS',
+      date,
+      fromDate,
+      toDate
+    } = req.body;
     
     if (morningPrasadam < 0 || eveningPrasadam < 0) {
       return res.status(400).json({ message: 'Counts must be non-negative' });
@@ -30,7 +39,10 @@ router.post('/', async (req, res) => {
 
     // Support single day or range booking
     let bookingDates = [];
-    if (fromDate && toDate) {
+    if (date) {
+      // Frontend submits one record per day with range metadata.
+      bookingDates = [date];
+    } else if (fromDate && toDate) {
       // Multi-day booking
       const from = new Date(fromDate);
       const to = new Date(toDate);
@@ -59,11 +71,6 @@ router.post('/', async (req, res) => {
     // Create meal records for each day in range
     const createdDocs = [];
     for (const date of bookingDates) {
-      const existing = await MealCount.findOne({ userId: req.user.id, date });
-      if (existing) {
-        continue; // Skip if already exists for this day
-      }
-
       // Generate tokens for email-based approval
       const approvalToken = generateApprovalToken();
       const rejectionToken = generateApprovalToken();
@@ -74,8 +81,8 @@ router.post('/', async (req, res) => {
         userPhone,
         userTemple,
         date,
-        fromDate,
-        toDate,
+        fromDate: fromDate || date,
+        toDate: toDate || date,
         morningPrasadam,
         eveningPrasadam,
         category,

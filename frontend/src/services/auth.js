@@ -4,8 +4,24 @@ export const getStoredAuth = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    const isValid =
+      parsed &&
+      typeof parsed === 'object' &&
+      typeof parsed.token === 'string' &&
+      parsed.user &&
+      typeof parsed.user === 'object' &&
+      typeof parsed.user.username === 'string' &&
+      typeof parsed.user.role === 'string';
+
+    if (!isValid) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+
+    return parsed;
   } catch {
+    localStorage.removeItem(STORAGE_KEY);
     return null;
   }
 };
