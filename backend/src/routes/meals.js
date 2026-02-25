@@ -97,17 +97,21 @@ router.post('/', async (req, res) => {
         editableUntil
       });
 
-      // Send email to admins
+      // Send email asynchronously so request creation doesn't block or timeout.
       if (adminEmails.length > 0) {
         const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const approveLink = `${baseUrl}/api/meals/${doc._id}/approve?token=${approvalToken}`;
         const rejectLink = `${baseUrl}/api/meals/${doc._id}/reject?token=${rejectionToken}`;
 
-        // Send to first admin
-        const emailSent = await sendRequestEmailToAdmin(doc.toObject(), adminEmails[0], approveLink, rejectLink);
-        if (emailSent) {
-          await MealCount.updateOne({ _id: doc._id }, { emailSent: true });
-        }
+        sendRequestEmailToAdmin(doc.toObject(), adminEmails[0], approveLink, rejectLink)
+          .then(async (emailSent) => {
+            if (emailSent) {
+              await MealCount.updateOne({ _id: doc._id }, { emailSent: true });
+            }
+          })
+          .catch((emailErr) => {
+            console.error('Async request email failed:', emailErr?.message || emailErr);
+          });
       }
 
       createdDocs.push(doc);
