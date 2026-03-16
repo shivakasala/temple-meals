@@ -12,11 +12,18 @@ const getTransporter = () => {
     console.log('[EMAIL] Password configured:', emailPass ? 'YES' : 'NO');
 
     _transporter = nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
       auth: {
         user: emailUser,
         pass: emailPass
-      }
+      },
+      tls: {
+        rejectUnauthorized: false
+      },
+      connectionTimeout: 10000,
+      socketTimeout: 10000
     });
 
     _transporter.verify()
