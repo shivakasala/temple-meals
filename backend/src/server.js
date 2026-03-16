@@ -29,6 +29,36 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/api/test-email', async (req, res) => {
+  try {
+    const nodemailer = (await import('nodemailer')).default;
+    const emailUser = process.env.EMAIL_USER;
+    const emailPass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
+
+    if (!emailUser || !emailPass) {
+      return res.json({ success: false, error: 'EMAIL_USER or EMAIL_PASS not set' });
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: emailUser, pass: emailPass }
+    });
+
+    await transporter.verify();
+
+    await transporter.sendMail({
+      from: emailUser,
+      to: emailUser,
+      subject: 'Render Email Test',
+      html: '<h2>Email is working from Render!</h2><p>Timestamp: ' + new Date().toISOString() + '</p>'
+    });
+
+    res.json({ success: true, message: 'Test email sent to ' + emailUser });
+  } catch (err) {
+    res.json({ success: false, error: err.message, code: err.code });
+  }
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/settings', settingsRoutes);
