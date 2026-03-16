@@ -33,34 +33,26 @@ app.get('/api/health', (req, res) => {
 
 app.get('/api/test-email', async (req, res) => {
   try {
-    const nodemailer = (await import('nodemailer')).default;
+    const resendKey = process.env.RESEND_API_KEY;
     const emailUser = process.env.EMAIL_USER;
-    const emailPass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
 
-    if (!emailUser || !emailPass) {
-      return res.json({ success: false, error: 'EMAIL_USER or EMAIL_PASS not set' });
+    if (!resendKey) {
+      return res.json({ success: false, error: 'RESEND_API_KEY not set. Sign up at resend.com and add the key.' });
     }
 
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: { user: emailUser, pass: emailPass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 10000,
-      socketTimeout: 10000
-    });
+    const { Resend } = await import('resend');
+    const resend = new Resend(resendKey);
+    const fromAddr = process.env.RESEND_FROM || 'Prasadam Portal <onboarding@resend.dev>';
 
-    await transporter.verify();
-
-    await transporter.sendMail({
-      from: emailUser,
-      to: emailUser,
+    const { data, error } = await resend.emails.send({
+      from: fromAddr,
+      to: [emailUser || 'test@example.com'],
       subject: 'Render Email Test',
       html: '<h2>Email is working from Render!</h2><p>Timestamp: ' + new Date().toISOString() + '</p>'
     });
 
-    res.json({ success: true, message: 'Test email sent to ' + emailUser });
+    if (error) return res.json({ success: false, error: error.message });
+    res.json({ success: true, message: 'Test email sent to ' + emailUser, id: data?.id });
   } catch (err) {
     res.json({ success: false, error: err.message, code: err.code });
   }
