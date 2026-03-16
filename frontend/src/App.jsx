@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Link, NavLink, useNavigate } from 'react-route
 import LoginPage from './pages/LoginPage.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import AdminRequests from './pages/AdminRequests.jsx';
+import DailySummary from './pages/DailySummary.jsx';
 import UserDashboard from './pages/UserDashboard.jsx';
 import RequestedMeals from './pages/RequestedMeals.jsx';
 import { getStoredAuth, clearAuth } from './services/auth';
@@ -52,6 +53,9 @@ const Layout = ({ children }) => {
                 </NavLink>
                 <NavLink to="/admin-requests" className={navLinkClass}>
                   Requests
+                </NavLink>
+                <NavLink to="/daily-summary" className={navLinkClass}>
+                  Daily Summary
                 </NavLink>
               </>
             )}
@@ -119,6 +123,9 @@ const Layout = ({ children }) => {
                 </NavLink>
                 <NavLink to="/admin-requests" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
                   Requests
+                </NavLink>
+                <NavLink to="/daily-summary" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
+                  Daily Summary
                 </NavLink>
               </>
             )}
@@ -190,6 +197,14 @@ export default function App() {
           element={
             <ProtectedRoute role="admin">
               <AdminRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/daily-summary"
+          element={
+            <ProtectedRoute role="admin">
+              <DailySummary />
             </ProtectedRoute>
           }
         />

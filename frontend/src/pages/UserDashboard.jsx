@@ -7,6 +7,11 @@ export default function UserDashboard() {
   const [loadingRates, setLoadingRates] = useState(true);
   const [error, setError] = useState('');
   const [meals, setMeals] = useState([]);
+  const [profileEmail, setProfileEmail] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailMsg, setEmailMsg] = useState('');
   const [form, setForm] = useState({
     name: '',
     userPhone: '',
@@ -42,9 +47,39 @@ export default function UserDashboard() {
     }
   };
 
+  const loadProfile = async () => {
+    try {
+      const res = await api.get('/auth/me');
+      const email = res.data?.user?.email || '';
+      setProfileEmail(email);
+      setEmailInput(email);
+    } catch {
+      // non-critical
+    }
+  };
+
+  const handleSaveEmail = async () => {
+    setSavingEmail(true);
+    setEmailMsg('');
+    try {
+      const res = await api.put('/auth/me', { email: emailInput.trim() });
+      const saved = res.data?.user?.email || '';
+      setProfileEmail(saved);
+      setEmailInput(saved);
+      setEditingEmail(false);
+      setEmailMsg('Email updated successfully');
+      setTimeout(() => setEmailMsg(''), 3000);
+    } catch (err) {
+      setEmailMsg(err.response?.data?.message || 'Failed to update email');
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
   useEffect(() => {
     loadRates();
     loadMine();
+    loadProfile();
   }, []);
 
   // Check if it's past 4 PM in local time
@@ -429,6 +464,68 @@ export default function UserDashboard() {
       <div className="text-center">
         <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Book Your Prasadam</h1>
         <p className="text-slate-500 text-sm mt-1">Manage your daily meal requests with ease</p>
+      </div>
+
+      {/* Email Notification Setup */}
+      <div className="p-4 rounded-lg border border-slate-200 bg-white">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-saffron-50 flex items-center justify-center shrink-0">
+              <svg className="w-4 h-4 text-saffron-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            {editingEmail ? (
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="your@email.com"
+                  className="!py-1.5 !text-sm flex-1 min-w-0"
+                />
+                <button
+                  onClick={handleSaveEmail}
+                  disabled={savingEmail}
+                  className="btn btn-primary btn-sm shrink-0"
+                >
+                  {savingEmail ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={() => { setEditingEmail(false); setEmailInput(profileEmail); setEmailMsg(''); }}
+                  className="btn btn-secondary btn-sm shrink-0"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="min-w-0">
+                {profileEmail ? (
+                  <p className="text-sm text-slate-700 truncate">
+                    Notifications sent to <span className="font-medium">{profileEmail}</span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-amber-700">
+                    Add your email to receive booking updates
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          {!editingEmail && (
+            <button
+              onClick={() => setEditingEmail(true)}
+              className="text-sm font-medium text-saffron-600 hover:text-saffron-700 shrink-0 ml-3"
+            >
+              {profileEmail ? 'Change' : 'Add Email'}
+            </button>
+          )}
+        </div>
+        {emailMsg && (
+          <p className={`text-xs mt-2 ${emailMsg.includes('success') ? 'text-emerald-600' : 'text-red-600'}`}>
+            {emailMsg}
+          </p>
+        )}
       </div>
 
       {/* Error */}

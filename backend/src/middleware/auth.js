@@ -29,7 +29,7 @@ export const authenticate = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
-    req.user = { id: user._id.toString(), username: user.username, role: user.role, templeName: user.templeName };
+    req.user = { id: user._id.toString(), username: user.username, role: user.role, templeName: user.templeName, email: user.email };
     next();
   } catch (err) {
     console.error('JWT error', err);

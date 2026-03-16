@@ -81,5 +81,30 @@ router.get('/me', authenticate, (req, res) => {
   res.json({ user: req.user });
 });
 
+// Update own profile (email)
+router.put('/me', authenticate, async (req, res) => {
+  try {
+    const { email } = req.body;
+    const update = { email: email || undefined };
+    const user = await User.findByIdAndUpdate(req.user.id, update, { new: true });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({
+      user: {
+        id: user._id,
+        username: user.username,
+        role: user.role,
+        templeName: user.templeName,
+        email: user.email
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    if (err.code === 11000) {
+      return res.status(409).json({ message: 'Email already in use' });
+    }
+    res.status(500).json({ message: 'Failed to update profile' });
+  }
+});
+
 export default router;
 

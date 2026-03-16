@@ -28,7 +28,7 @@ export default function AdminRequests() {
 
   const updateMealStatus = async (mealId, status) => {
     try {
-      await api.put(`/meals/${mealId}`, { mealStatus: status });
+      await api.post(`/meals/${mealId}/admin-meal-status`, { status });
       await loadMeals();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update status');
@@ -37,7 +37,7 @@ export default function AdminRequests() {
 
   const updatePaymentStatus = async (mealId, status) => {
     try {
-      await api.put(`/meals/${mealId}`, { paymentStatus: status });
+      await api.post(`/meals/${mealId}/admin-payment-status`, { status });
       await loadMeals();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update payment status');
