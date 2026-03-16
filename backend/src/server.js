@@ -1,6 +1,4 @@
 import 'dotenv/config';
-import dns from 'dns';
-dns.setDefaultResultOrder('ipv4first');
 
 import express from 'express';
 import cors from 'cors';
@@ -31,30 +29,43 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Debug endpoint: check admin emails and send a test email
 app.get('/api/test-email', async (req, res) => {
   try {
-    const resendKey = process.env.RESEND_API_KEY;
-    const emailUser = process.env.EMAIL_USER;
+    const User = (await import('./models/User.js')).default;
+    const getTransporter = (await import('./utils/email.js')).default;
 
-    if (!resendKey) {
-      return res.json({ success: false, error: 'RESEND_API_KEY not set. Sign up at resend.com and add the key.' });
+    const admins = await User.find({ role: 'admin' }).select('username email').lean();
+    const adminEmails = admins.map(a => ({ username: a.username, email: a.email || '(NOT SET)' }));
+
+    const transporter = getTransporter();
+    let verifyResult = 'unknown';
+    try {
+      await transporter.verify();
+      verifyResult = 'OK';
+    } catch (err) {
+      verifyResult = 'FAILED: ' + err.message;
     }
 
-    const { Resend } = await import('resend');
-    const resend = new Resend(resendKey);
-    const fromAddr = process.env.RESEND_FROM || 'Prasadam Portal <onboarding@resend.dev>';
+    let sendResult = 'skipped';
+    const testTo = process.env.EMAIL_USER;
+    if (testTo && verifyResult === 'OK') {
+      try {
+        await transporter.sendMail({
+          from: testTo,
+          to: testTo,
+          subject: 'Render Email Test',
+          html: '<h2>Email is working on Render!</h2><p>This is a test from your deployed backend.</p>'
+        });
+        sendResult = 'SENT to ' + testTo;
+      } catch (err) {
+        sendResult = 'FAILED: ' + err.message;
+      }
+    }
 
-    const { data, error } = await resend.emails.send({
-      from: fromAddr,
-      to: [emailUser || 'test@example.com'],
-      subject: 'Render Email Test',
-      html: '<h2>Email is working from Render!</h2><p>Timestamp: ' + new Date().toISOString() + '</p>'
-    });
-
-    if (error) return res.json({ success: false, error: error.message });
-    res.json({ success: true, message: 'Test email sent to ' + emailUser, id: data?.id });
+    res.json({ admins: adminEmails, transporter_verify: verifyResult, test_email: sendResult });
   } catch (err) {
-    res.json({ success: false, error: err.message, code: err.code });
+    res.status(500).json({ error: err.message });
   }
 });
 
