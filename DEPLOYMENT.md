@@ -21,6 +21,9 @@
    JWT_SECRET=<generate-strong-random-string>
    PORT=4000
    CORS_ORIGIN=https://temple-meals-frontend.onrender.com
+   EMAIL_USER=iskconabidskitchen@gmail.com
+   EMAIL_PASS=qqqb oiux wpmz stkz
+   API_BASE_URL=https://temple-meals-api.onrender.com
    ```
 7. Deploy
 

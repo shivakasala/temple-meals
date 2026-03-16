@@ -8,6 +8,113 @@ import { generateApprovalToken, sendRequestEmailToAdmin, sendConfirmationEmailTo
 
 const router = express.Router();
 
+const emailActionPage = (title, color, message) => `
+  <html><body style="font-family:sans-serif;text-align:center;padding:60px;max-width:500px;margin:0 auto;">
+    <h1 style="color:${color};">${title}</h1>
+    <p style="font-size:16px;color:#333;">${message}</p>
+  </body></html>
+`;
+
+// Email-based approval endpoint (no auth required -- uses its own approval token)
+router.get('/:id/approve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { token } = req.query;
+
+    if (!token) {
+      return res.send(emailActionPage('Invalid Link', '#ef4444', 'This approval link is invalid.'));
+    }
+
+    const meal = await MealCount.findById(id);
+    if (!meal) {
+      return res.send(emailActionPage('Not Found', '#ef4444', 'This request no longer exists.'));
+    }
+
+    if (meal.mealStatus !== 'requested') {
+      const already = meal.mealStatus === 'approved' ? 'Approved' : 'Rejected';
+      const color = meal.mealStatus === 'approved' ? '#10b981' : '#ef4444';
+      return res.send(emailActionPage(
+        `Already ${already}`,
+        color,
+        `This request for <strong>${meal.userName}</strong> on <strong>${meal.date}</strong> has already been <strong>${already.toLowerCase()}</strong>. No further action needed.`
+      ));
+    }
+
+    if (meal.approvalToken !== token) {
+      return res.send(emailActionPage('Invalid Link', '#ef4444', 'This approval link is invalid or expired.'));
+    }
+
+    meal.mealStatus = 'approved';
+    meal.approvalToken = null;
+    meal.rejectionToken = null;
+    await meal.save();
+
+    const user = await User.findById(meal.userId);
+    if (user && user.email) {
+      await sendConfirmationEmailToUser(meal, user.email, 'approved');
+    }
+
+    res.send(emailActionPage(
+      'Request Approved',
+      '#10b981',
+      `Prasadam request for <strong>${meal.userName}</strong> on <strong>${meal.date}</strong> has been approved. The user has been notified by email.`
+    ));
+  } catch (err) {
+    console.error(err);
+    res.send(emailActionPage('Error', '#ef4444', 'Something went wrong. Please try again or use the dashboard.'));
+  }
+});
+
+// Email-based rejection endpoint (no auth required -- uses its own rejection token)
+router.get('/:id/reject', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { token } = req.query;
+
+    if (!token) {
+      return res.send(emailActionPage('Invalid Link', '#ef4444', 'This rejection link is invalid.'));
+    }
+
+    const meal = await MealCount.findById(id);
+    if (!meal) {
+      return res.send(emailActionPage('Not Found', '#ef4444', 'This request no longer exists.'));
+    }
+
+    if (meal.mealStatus !== 'requested') {
+      const already = meal.mealStatus === 'approved' ? 'Approved' : 'Rejected';
+      const color = meal.mealStatus === 'approved' ? '#10b981' : '#ef4444';
+      return res.send(emailActionPage(
+        `Already ${already}`,
+        color,
+        `This request for <strong>${meal.userName}</strong> on <strong>${meal.date}</strong> has already been <strong>${already.toLowerCase()}</strong>. No further action needed.`
+      ));
+    }
+
+    if (meal.rejectionToken !== token) {
+      return res.send(emailActionPage('Invalid Link', '#ef4444', 'This rejection link is invalid or expired.'));
+    }
+
+    meal.mealStatus = 'rejected';
+    meal.approvalToken = null;
+    meal.rejectionToken = null;
+    await meal.save();
+
+    const user = await User.findById(meal.userId);
+    if (user && user.email) {
+      await sendConfirmationEmailToUser(meal, user.email, 'rejected');
+    }
+
+    res.send(emailActionPage(
+      'Request Rejected',
+      '#ef4444',
+      `Prasadam request for <strong>${meal.userName}</strong> on <strong>${meal.date}</strong> has been rejected. The user has been notified by email.`
+    ));
+  } catch (err) {
+    console.error(err);
+    res.send(emailActionPage('Error', '#ef4444', 'Something went wrong. Please try again or use the dashboard.'));
+  }
+});
+
 router.use(authenticate);
 
 // Helper to calculate bill on server to prevent tampering
@@ -97,15 +204,21 @@ router.post('/', async (req, res) => {
         editableUntil
       });
 
-      // Send email asynchronously so request creation doesn't block or timeout.
+      // Send email to all admins asynchronously so request creation doesn't block.
       if (adminEmails.length > 0) {
-        const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const baseUrl = process.env.API_BASE_URL || process.env.BACKEND_URL || 'http://localhost:4000';
         const approveLink = `${baseUrl}/api/meals/${doc._id}/approve?token=${approvalToken}`;
         const rejectLink = `${baseUrl}/api/meals/${doc._id}/reject?token=${rejectionToken}`;
+        const mealObj = doc.toObject();
 
-        sendRequestEmailToAdmin(doc.toObject(), adminEmails[0], approveLink, rejectLink)
-          .then(async (emailSent) => {
-            if (emailSent) {
+        Promise.all(
+          adminEmails.map(email =>
+            sendRequestEmailToAdmin(mealObj, email, approveLink, rejectLink)
+          )
+        )
+          .then(async (results) => {
+            if (results.some(Boolean)) {
+ 
               await MealCount.updateOne({ _id: doc._id }, { emailSent: true });
             }
           })
@@ -221,6 +334,16 @@ router.post('/:id/admin-meal-status', requireAdmin, async (req, res) => {
     if (!meal) return res.status(404).json({ message: 'Meal request not found' });
     meal.mealStatus = status;
     await meal.save();
+
+    if (status === 'approved' || status === 'rejected') {
+      const user = await User.findById(meal.userId);
+      if (user && user.email) {
+        sendConfirmationEmailToUser(meal, user.email, status).catch(err =>
+          console.error('Failed to send confirmation email:', err?.message)
+        );
+      }
+    }
+
     res.json(meal);
   } catch (err) {
     console.error(err);
@@ -299,80 +422,6 @@ router.get('/admin-report', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to fetch report' });
-  }
-});
-
-// Email-based approval endpoint
-router.get('/:id/approve', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { token } = req.query;
-
-    if (!token) {
-      return res.status(400).json({ message: 'Invalid approval token' });
-    }
-
-    const meal = await MealCount.findById(id);
-    if (!meal) {
-      return res.status(404).json({ message: 'Request not found' });
-    }
-
-    // Verify token
-    if (meal.approvalToken !== token) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
-    }
-
-    // Update status
-    meal.mealStatus = 'approved';
-    await meal.save();
-
-    // Send confirmation email to user
-    const user = await User.findById(meal.userId);
-    if (user && user.email) {
-      await sendConfirmationEmailToUser(meal, user.email, 'approved');
-    }
-
-    res.json({ message: 'Request approved successfully', meal });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to approve request' });
-  }
-});
-
-// Email-based rejection endpoint
-router.get('/:id/reject', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { token } = req.query;
-
-    if (!token) {
-      return res.status(400).json({ message: 'Invalid rejection token' });
-    }
-
-    const meal = await MealCount.findById(id);
-    if (!meal) {
-      return res.status(404).json({ message: 'Request not found' });
-    }
-
-    // Verify token
-    if (meal.rejectionToken !== token) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
-    }
-
-    // Update status
-    meal.mealStatus = 'rejected';
-    await meal.save();
-
-    // Send confirmation email to user
-    const user = await User.findById(meal.userId);
-    if (user && user.email) {
-      await sendConfirmationEmailToUser(meal, user.email, 'rejected');
-    }
-
-    res.json({ message: 'Request rejected successfully', meal });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to reject request' });
   }
 });
 

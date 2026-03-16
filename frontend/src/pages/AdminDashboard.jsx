@@ -392,39 +392,6 @@ export default function AdminDashboard() {
         )}
       </section>
 
-      {/* Daily Summary */}
-      {summary && summary.daily?.length > 0 && (
-        <section className="card">
-          <h2 className="section-title mb-4">Daily Summary</h2>
-          <div className="table-container">
-            <table className="table-base">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th className="text-right">Morning</th>
-                  <th className="text-right">Evening</th>
-                  <th className="text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.daily.map((d) => (
-                  <tr key={d._id}>
-                    <td className="font-medium text-slate-800">{d._id}</td>
-                    <td className="text-right text-slate-600">
-                      {d.totalMorning || d.totalBreakfast || 0}
-                    </td>
-                    <td className="text-right text-slate-600">
-                      {d.totalEvening || d.totalDinner || 0}
-                    </td>
-                    <td className="text-right font-semibold text-saffron-700">₹{d.totalAmount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
       {/* Create User Modal */}
       <Modal
         isOpen={showUserModal}

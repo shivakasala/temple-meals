@@ -21,6 +21,8 @@ services:
         fromConfig: EMAIL_PASS
       - key: CORS_ORIGIN
         fromConfig: CORS_ORIGIN
+      - key: API_BASE_URL
+        fromConfig: API_BASE_URL
 
   - type: web
     name: temple-meals-frontend
