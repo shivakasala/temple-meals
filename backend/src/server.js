@@ -21,7 +21,12 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({
+    status: 'ok',
+    email_user: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
+    email_pass: process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD ? 'SET' : 'NOT SET',
+    api_base_url: process.env.API_BASE_URL || 'NOT SET'
+  });
 });
 
 app.use('/api/auth', authRoutes);

@@ -1,20 +1,30 @@
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 
-// Initialize transporter (configured for Gmail or any email service)
-const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER || 'kasalashiva9392@gmail.com',
-    // support both EMAIL_PASS and EMAIL_PASSWORD env var names
-    pass: process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || ''
-  }
-});
+let _transporter = null;
 
-// Log transporter verification at startup to help debug configuration
-transporter.verify()
-  .then(() => console.log('Email transporter verified'))
-  .catch((err) => console.warn('Email transporter verification failed:', err && err.message));
+const getTransporter = () => {
+  if (!_transporter) {
+    const emailUser = process.env.EMAIL_USER;
+    const emailPass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
+
+    console.log('[EMAIL] Initializing transporter with user:', emailUser || '(NOT SET)');
+    console.log('[EMAIL] Password configured:', emailPass ? 'YES' : 'NO');
+
+    _transporter = nodemailer.createTransport({
+      service: process.env.EMAIL_SERVICE || 'gmail',
+      auth: {
+        user: emailUser,
+        pass: emailPass
+      }
+    });
+
+    _transporter.verify()
+      .then(() => console.log('Email transporter verified'))
+      .catch((err) => console.warn('Email transporter verification failed:', err && err.message));
+  }
+  return _transporter;
+};
 
 // Generate approval token
 export const generateApprovalToken = () => {
@@ -59,8 +69,8 @@ export const sendRequestEmailToAdmin = async (meal, adminEmail, approveLink, rej
   `;
 
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER || 'noreply@temple-meals.com',
+    await getTransporter().sendMail({
+      from: process.env.EMAIL_USER,
       to: adminEmail,
       subject: `New Prasadam Request - ${meal.date} - ${meal.userName}`,
       html: emailContent
@@ -99,8 +109,8 @@ export const sendConfirmationEmailToUser = async (meal, userEmail, status) => {
   `;
 
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER || 'noreply@temple-meals.com',
+    await getTransporter().sendMail({
+      from: process.env.EMAIL_USER,
       to: userEmail,
       subject: `Prasadam Request ${statusText} - ${meal.date}`,
       html: emailContent
@@ -113,4 +123,4 @@ export const sendConfirmationEmailToUser = async (meal, userEmail, status) => {
   }
 };
 
-export default transporter;
+export default getTransporter;
