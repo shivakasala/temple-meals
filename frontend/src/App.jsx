@@ -6,6 +6,7 @@ import AdminRequests from './pages/AdminRequests.jsx';
 import DailySummary from './pages/DailySummary.jsx';
 import UserDashboard from './pages/UserDashboard.jsx';
 import RequestedMeals from './pages/RequestedMeals.jsx';
+import ProcessApproval from './pages/ProcessApproval.jsx';
 import { getStoredAuth, clearAuth } from './services/auth';
 
 const Layout = ({ children }) => {
@@ -224,6 +225,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/process-approval" element={<ProcessApproval />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Layout>

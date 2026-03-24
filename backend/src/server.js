@@ -21,7 +21,52 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({
+    status: 'ok',
+    email_user: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
+    email_pass: process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD ? 'SET' : 'NOT SET',
+    api_base_url: process.env.API_BASE_URL || 'NOT SET'
+  });
+});
+
+// Debug endpoint: check admin emails and send a test email
+app.get('/api/test-email', async (req, res) => {
+  try {
+    const User = (await import('./models/User.js')).default;
+    const getTransporter = (await import('./utils/email.js')).default;
+
+    const admins = await User.find({ role: 'admin' }).select('username email').lean();
+    const adminEmails = admins.map(a => ({ username: a.username, email: a.email || '(NOT SET)' }));
+
+    const transporter = getTransporter();
+    let verifyResult = 'unknown';
+    try {
+      await transporter.verify();
+      verifyResult = 'OK';
+    } catch (err) {
+      verifyResult = 'FAILED: ' + err.message;
+    }
+
+    let sendResult = 'skipped';
+    const testTo = process.env.EMAIL_USER;
+    if (testTo && verifyResult === 'OK') {
+      try {
+        await transporter.sendMail({
+          from: testTo,
+          to: testTo,
+          subject: 'Render Email Test',
+          html: '<h2>Email is working on Render!</h2><p>This is a test from your deployed backend.</p>'
+        });
+        sendResult = 'SENT to ' + testTo;
+      } catch (err) {
+        sendResult = 'FAILED: ' + err.message;
+      }
+    }
+
+    res.json({ admins: adminEmails, transporter_verify: verifyResult, test_email: sendResult });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.use('/api/auth', authRoutes);
