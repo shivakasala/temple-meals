@@ -1,92 +1,31 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import api from '../services/api';
 import { setStoredAuth } from '../services/auth';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (loading) {
-      return;
-    }
-
+  const handleGoogleSuccess = async (credentialResponse) => {
     setError('');
     setLoading(true);
-
-    console.log('[LOGIN] Starting login attempt for:', username);
-
     try {
-      console.log('[LOGIN] Sending login request...');
-      const res = await api.post('/auth/login', { username, password });
-
-      console.log('[LOGIN] Got response:', {
-        status: res.status,
-        data: res.data,
-        hasToken: !!res.data?.token,
-        hasUser: !!res.data?.user,
-        userData: res.data?.user
-      });
-
-      // Check for data existence FIRST
-      if (!res || !res.data) {
-        console.error('[LOGIN] No response or response data:', res);
-        throw new Error('Server returned no data. Check backend is running.');
+      const res = await api.post('/auth/google', { token: credentialResponse.credential });
+      if (!res || !res.data || !res.data.token || !res.data.user) {
+        throw new Error('Invalid server response');
       }
-
-      // Check for required fields
-      if (!res.data.token) {
-        console.error('[LOGIN] Token missing:', res.data);
-        throw new Error('Invalid server response: missing token');
-      }
-      if (!res.data.user) {
-        console.error('[LOGIN] User missing:', res.data);
-        throw new Error('Invalid server response: missing user object');
-      }
-
-      console.log('[LOGIN] Validation passed, storing auth...');
       setStoredAuth(res.data);
-
-      console.log('[LOGIN] Login successful, redirecting to:', res.data.user.role);
       if (res.data.user.role === 'admin') {
         navigate('/admin');
       } else {
         navigate('/user');
       }
     } catch (err) {
-      console.error('[LOGIN] Error caught:', {
-        message: err.message,
-        code: err.code,
-        status: err.response?.status,
-        data: err.response?.data
-      });
-
-      let errorMsg = 'Login failed';
-
-      if (err.response?.status === 401) {
-        errorMsg = 'Invalid username or password';
-      } else if (err.response?.status === 400) {
-        errorMsg = err.response.data?.message || 'Please provide username and password';
-      } else if (err.response?.status === 500) {
-        errorMsg = 'Server error. Please try again later.';
-      } else if (err.response?.data?.message) {
-        errorMsg = err.response.data.message;
-      } else if (err.code === 'ERR_NETWORK') {
-        errorMsg = 'Cannot connect to server. Check if backend is running on http://localhost:4000';
-      } else if (err.code === 'ECONNABORTED') {
-        errorMsg = 'Request timeout. Server is not responding.';
-      } else if (err.message) {
-        errorMsg = err.message;
-      }
-
-      console.error('[LOGIN] Setting error:', errorMsg);
-      setError(errorMsg);
+      console.error('Google login failed:', err);
+      setError(err.response?.data?.message || 'Google login failed');
     } finally {
       setLoading(false);
     }
@@ -102,13 +41,13 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
             Prasadam Portal
           </h1>
-          <p className="text-slate-500 text-sm mt-1">Sign in to manage your bookings</p>
+          <p className="text-slate-500 text-sm mt-1">Sign in with Google to manage your bookings</p>
         </div>
 
         <div className="card !p-0 overflow-hidden">
-          <div className="p-6 space-y-5">
+          <div className="p-6 flex flex-col items-center space-y-6">
             {error && (
-              <div className="alert-error">
+              <div className="alert-error w-full">
                 <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
@@ -120,49 +59,26 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  autoFocus
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  placeholder="Enter your username"
-                />
+            {loading && (
+              <div className="flex items-center justify-center gap-2 text-saffron-600 font-medium">
+                <span className="spinner !w-5 !h-5 !border-t-saffron-600 !border-saffron-200"></span>
+                Signing in...
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="Enter your password"
-                />
-              </div>
-
-              <button type="submit" disabled={loading} className="w-full btn btn-primary !py-3">
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="spinner !w-4 !h-4 !border-t-white !border-saffron-300"></span>
-                    Signing in
-                  </span>
-                ) : (
-                  'Sign In'
-                )}
-              </button>
-            </form>
+            <div className={`w-full flex justify-center ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => {
+                  setError('Google Sign-In failed. Please try again.');
+                }}
+                useOneTap
+              />
+            </div>
           </div>
 
           <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 text-center">
-            <p className="text-xs text-slate-400">Contact your admin for credentials</p>
+            <p className="text-xs text-slate-400">Only authorized users can access the portal.</p>
           </div>
         </div>
       </div>

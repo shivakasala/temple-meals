@@ -4,116 +4,9 @@ import Setting from '../models/Setting.js';
 import User from '../models/User.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { nowUtc, calcEditableUntil, isEditable, isPastCutoffForNextDay, nextDayLocalDateString } from '../utils/time.js';
-import { generateApprovalToken, sendRequestEmailToAdmin, sendConfirmationEmailToUser } from '../utils/email.js';
+import { sendRequestEmailToAdmin, sendConfirmationEmailToUser, sendAcknowledgementEmailToUser } from '../utils/email.js';
 
 const router = express.Router();
-
-const emailActionPage = (title, color, message) => `
-  <html><body style="font-family:sans-serif;text-align:center;padding:60px;max-width:500px;margin:0 auto;">
-    <h1 style="color:${color};">${title}</h1>
-    <p style="font-size:16px;color:#333;">${message}</p>
-  </body></html>
-`;
-
-// Email-based approval endpoint (no auth required -- uses its own approval token)
-router.get('/:id/approve', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { token } = req.query;
-
-    if (!token) {
-      return res.send(emailActionPage('Invalid Link', '#ef4444', 'This approval link is invalid.'));
-    }
-
-    const meal = await MealCount.findById(id);
-    if (!meal) {
-      return res.send(emailActionPage('Not Found', '#ef4444', 'This request no longer exists.'));
-    }
-
-    if (meal.mealStatus !== 'requested') {
-      const already = meal.mealStatus === 'approved' ? 'Approved' : 'Rejected';
-      const color = meal.mealStatus === 'approved' ? '#10b981' : '#ef4444';
-      return res.send(emailActionPage(
-        `Already ${already}`,
-        color,
-        `This request for <strong>${meal.userName}</strong> on <strong>${meal.date}</strong> has already been <strong>${already.toLowerCase()}</strong>. No further action needed.`
-      ));
-    }
-
-    if (meal.approvalToken !== token) {
-      return res.send(emailActionPage('Invalid Link', '#ef4444', 'This approval link is invalid or expired.'));
-    }
-
-    meal.mealStatus = 'approved';
-    meal.approvalToken = null;
-    meal.rejectionToken = null;
-    await meal.save();
-
-    const user = await User.findById(meal.userId);
-    if (user && user.email) {
-      await sendConfirmationEmailToUser(meal, user.email, 'approved');
-    }
-
-    res.send(emailActionPage(
-      'Request Approved',
-      '#10b981',
-      `Prasadam request for <strong>${meal.userName}</strong> on <strong>${meal.date}</strong> has been approved. The user has been notified by email.`
-    ));
-  } catch (err) {
-    console.error(err);
-    res.send(emailActionPage('Error', '#ef4444', 'Something went wrong. Please try again or use the dashboard.'));
-  }
-});
-
-// Email-based rejection endpoint (no auth required -- uses its own rejection token)
-router.get('/:id/reject', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { token } = req.query;
-
-    if (!token) {
-      return res.send(emailActionPage('Invalid Link', '#ef4444', 'This rejection link is invalid.'));
-    }
-
-    const meal = await MealCount.findById(id);
-    if (!meal) {
-      return res.send(emailActionPage('Not Found', '#ef4444', 'This request no longer exists.'));
-    }
-
-    if (meal.mealStatus !== 'requested') {
-      const already = meal.mealStatus === 'approved' ? 'Approved' : 'Rejected';
-      const color = meal.mealStatus === 'approved' ? '#10b981' : '#ef4444';
-      return res.send(emailActionPage(
-        `Already ${already}`,
-        color,
-        `This request for <strong>${meal.userName}</strong> on <strong>${meal.date}</strong> has already been <strong>${already.toLowerCase()}</strong>. No further action needed.`
-      ));
-    }
-
-    if (meal.rejectionToken !== token) {
-      return res.send(emailActionPage('Invalid Link', '#ef4444', 'This rejection link is invalid or expired.'));
-    }
-
-    meal.mealStatus = 'rejected';
-    meal.approvalToken = null;
-    meal.rejectionToken = null;
-    await meal.save();
-
-    const user = await User.findById(meal.userId);
-    if (user && user.email) {
-      await sendConfirmationEmailToUser(meal, user.email, 'rejected');
-    }
-
-    res.send(emailActionPage(
-      'Request Rejected',
-      '#ef4444',
-      `Prasadam request for <strong>${meal.userName}</strong> on <strong>${meal.date}</strong> has been rejected. The user has been notified by email.`
-    ));
-  } catch (err) {
-    console.error(err);
-    res.send(emailActionPage('Error', '#ef4444', 'Something went wrong. Please try again or use the dashboard.'));
-  }
-});
 
 router.use(authenticate);
 
@@ -178,10 +71,7 @@ router.post('/', async (req, res) => {
     // Create meal records for each day in range
     const createdDocs = [];
     for (const date of bookingDates) {
-      // Generate tokens for email-based approval
-      const approvalToken = generateApprovalToken();
-      const rejectionToken = generateApprovalToken();
-
+      // Remove approvalToken code
       const doc = await MealCount.create({
         userId: req.user.id,
         userName: req.user.username,
@@ -196,21 +86,28 @@ router.post('/', async (req, res) => {
         billAmount,
         mealStatus: 'requested',
         paymentStatus: 'pending',
-        approvalToken,
-        rejectionToken,
         emailSent: false,
         adminEmail: adminEmails[0],
         createdAt,
         editableUntil
       });
 
+      const mealObj = doc.toObject();
+
+      // Send acknowledgement email to the user who requested the meal
+      const requestingUser = await User.findById(req.user.id);
+      if (requestingUser && requestingUser.email) {
+        sendAcknowledgementEmailToUser(mealObj, requestingUser.email).catch(err => {
+          console.error('Async user acknowledgement email failed:', err?.message || err);
+        });
+      }
+
       // Send email to all admins asynchronously so request creation doesn't block.
       if (adminEmails.length > 0) {
-        const baseUrl = process.env.API_BASE_URL || process.env.BACKEND_URL || 'http://localhost:4000';
-        const approveLink = `${baseUrl}/api/meals/${doc._id}/approve?token=${approvalToken}`;
-        const rejectLink = `${baseUrl}/api/meals/${doc._id}/reject?token=${rejectionToken}`;
-        const mealObj = doc.toObject();
-
+        const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
+        const approveLink = `${frontendUrl}/process-approval?id=${doc._id}&action=approve`;
+        const rejectLink = `${frontendUrl}/process-approval?id=${doc._id}&action=reject`;
+        
         Promise.all(
           adminEmails.map(email =>
             sendRequestEmailToAdmin(mealObj, email, approveLink, rejectLink)
