@@ -12,16 +12,14 @@ const getTransporter = () => {
     console.log('[EMAIL] Password configured:', emailPass ? 'YES' : 'NO');
 
     _transporter = nodemailer.createTransport({
+      service: 'gmail',
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
       auth: {
         user: emailUser,
         pass: emailPass
-      },
-      // Force IPv4 to prevent ENETUNREACH errors on services like Render
-      family: 4,
-      tls: { family: 4 }
+      }
     });
 
     _transporter.verify()
