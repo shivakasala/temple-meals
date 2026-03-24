@@ -12,13 +12,15 @@ const getTransporter = () => {
     console.log('[EMAIL] Password configured:', emailPass ? 'YES' : 'NO');
 
     _transporter = nodemailer.createTransport({
-      service: 'gmail',
-      host: 'smtp.gmail.com',
+      host: '192.178.211.109', // Hardcoded IPv4 for smtp.gmail.com to bypass Render's IPv6 DNS issues
       port: 465,
       secure: true,
       auth: {
         user: emailUser,
         pass: emailPass
+      },
+      tls: {
+        rejectUnauthorized: false // Required when using raw IP instead of hostname
       }
     });
 
