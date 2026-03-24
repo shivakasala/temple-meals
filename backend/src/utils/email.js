@@ -19,6 +19,8 @@ const getTransporter = () => {
         user: emailUser,
         pass: emailPass
       },
+      // Force IPv4 to prevent ENETUNREACH errors on services like Render
+      family: 4,
       tls: { family: 4 }
     });
 
