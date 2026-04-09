@@ -149,7 +149,7 @@ export default function RequestedMeals() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
-            Your Prasadam Requests
+            Your Meal Requests
           </h1>
           <p className="text-slate-500 text-sm mt-1">View and manage all your meal bookings</p>
         </div>

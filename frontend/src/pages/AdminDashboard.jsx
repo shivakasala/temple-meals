@@ -202,13 +202,13 @@ export default function AdminDashboard() {
 
       {/* Two‑Column Layout: Rates + Users */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Prasadam Rates */}
+        {/* Meal Rates */}
         <section className="card">
-          <h2 className="section-title mb-4">Prasadam Rates</h2>
+          <h2 className="section-title mb-4">Meal Rates</h2>
           <form onSubmit={handleRatesSave} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">
-                Morning Prasadam (₹)
+                Morning Meal (₹)
               </label>
               <input
                 type="number"
@@ -221,7 +221,7 @@ export default function AdminDashboard() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">
-                Evening Prasadam (₹)
+                Evening Meal (₹)
               </label>
               <input
                 type="number"

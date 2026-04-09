@@ -92,7 +92,7 @@ export default function AdminRequests() {
       <div>
         <h1 className="text-2xl font-bold text-slate-800 tracking-tight">All Meal Requests</h1>
         <p className="text-slate-500 text-sm mt-1">
-          Review and manage all prasadam booking requests
+          Review and manage all meal booking requests
         </p>
       </div>
 

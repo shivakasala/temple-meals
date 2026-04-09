@@ -41,7 +41,7 @@ const Layout = ({ children }) => {
               🏛
             </div>
             <span className="font-bold text-slate-800 text-base tracking-tight">
-              Prasadam Portal
+              Meal Attendence Monitoring System
             </span>
           </Link>
 
@@ -166,7 +166,7 @@ const Layout = ({ children }) => {
       {/* Footer */}
       <footer className="border-t border-slate-200/60 mt-auto">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 text-center text-xs text-slate-400">
-          © {new Date().getFullYear()} Temple Prasadam Portal
+          © {new Date().getFullYear()} Meal Attendence Monitoring System
         </div>
       </footer>
     </div>

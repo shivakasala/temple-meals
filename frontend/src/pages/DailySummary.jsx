@@ -84,7 +84,7 @@ export default function DailySummary() {
       <div>
         <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Daily Summary</h1>
         <p className="text-slate-500 text-sm mt-1">
-          Overview of all prasadam bookings for a single day
+          Overview of all meal bookings for a single day
         </p>
       </div>
 
@@ -141,12 +141,12 @@ export default function DailySummary() {
           {/* Totals Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="card !p-5">
-              <p className="stat-label">Morning Prasadam</p>
+              <p className="stat-label">Morning Meal</p>
               <p className="text-2xl font-bold text-blue-600 mt-1">{totalMorning}</p>
               <p className="text-xs text-slate-400 mt-0.5">9:00 AM servings</p>
             </div>
             <div className="card !p-5">
-              <p className="stat-label">Evening Prasadam</p>
+              <p className="stat-label">Evening Meal</p>
               <p className="text-2xl font-bold text-emerald-600 mt-1">{totalEvening}</p>
               <p className="text-xs text-slate-400 mt-0.5">4:30 PM servings</p>
             </div>
@@ -184,7 +184,7 @@ export default function DailySummary() {
               <div className="empty-state">
                 <p className="empty-state-icon">📋</p>
                 <p className="empty-state-title">No bookings</p>
-                <p className="empty-state-text">No prasadam bookings found for this date.</p>
+                <p className="empty-state-text">No meal bookings found for this date.</p>
               </div>
             </div>
           ) : (

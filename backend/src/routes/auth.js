@@ -1,65 +1,9 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import { generateToken, authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || 'dummy_client_id_for_dev');
-
-// Google Login
-router.post('/google', async (req, res) => {
-  try {
-    const { token } = req.body;
-    if (!token) return res.status(400).json({ message: 'Google token is required' });
-
-    // Note: ensure GOOGLE_CLIENT_ID matches frontend
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    const { sub: googleId, email, name } = payload;
-    
-    // Find user by email or googleId
-    let user = await User.findOne({ email });
-    if (!user) {
-      user = await User.findOne({ googleId });
-    }
-    
-    if (!user) {
-      // First user created becomes admin automatically
-      const count = await User.countDocuments();
-      
-      user = await User.create({
-        username: name || email.split('@')[0],
-        email: email,
-        googleId: googleId,
-        role: count === 0 ? 'admin' : 'user',
-        templeName: 'Default Temple'
-      });
-    } else if (!user.googleId) {
-      user.googleId = googleId;
-      await user.save();
-    }
-    
-    const jwtToken = generateToken(user);
-    
-    res.status(200).json({
-      token: jwtToken,
-      user: {
-        id: user._id,
-        username: user.username,
-        role: user.role,
-        templeName: user.templeName,
-        email: user.email
-      }
-    });
-  } catch (err) {
-    console.error('[AUTH-DEBUG] Google login error:', err.message, err.stack);
-    res.status(401).json({ message: 'Google authentication failed', error: err.message });
-  }
-});
 
 // Seed first admin if no users exist (one-time bootstrap)
 router.post('/bootstrap-admin', async (req, res) => {

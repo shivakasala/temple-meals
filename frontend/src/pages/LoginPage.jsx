@@ -1,19 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GoogleLogin } from '@react-oauth/google';
 import api from '../services/api';
 import { setStoredAuth } from '../services/auth';
 
 export default function LoginPage() {
+  const [form, setForm] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleGoogleSuccess = async (credentialResponse) => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const res = await api.post('/auth/google', { token: credentialResponse.credential });
+      const res = await api.post('/auth/login', form);
       if (!res || !res.data || !res.data.token || !res.data.user) {
         throw new Error('Invalid server response');
       }
@@ -24,8 +30,8 @@ export default function LoginPage() {
         navigate('/user');
       }
     } catch (err) {
-      console.error('Google login failed:', err);
-      setError(err.response?.data?.message || 'Google login failed');
+      console.error('Login failed:', err);
+      setError(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -39,15 +45,15 @@ export default function LoginPage() {
             &#127974;
           </div>
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
-            Prasadam Portal
+            Meal Attendence Monitoring System
           </h1>
-          <p className="text-slate-500 text-sm mt-1">Sign in with Google to manage your bookings</p>
+          <p className="text-slate-500 text-sm mt-1">Sign in with your username and password</p>
         </div>
 
         <div className="card !p-0 overflow-hidden">
-          <div className="p-6 flex flex-col items-center space-y-6">
+          <form onSubmit={handleSubmit} className="p-6 flex flex-col space-y-4">
             {error && (
-              <div className="alert-error w-full">
+              <div className="alert-error">
                 <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
@@ -59,23 +65,30 @@ export default function LoginPage() {
               </div>
             )}
 
-            {loading && (
-              <div className="flex items-center justify-center gap-2 text-saffron-600 font-medium">
-                <span className="spinner !w-5 !h-5 !border-t-saffron-600 !border-saffron-200"></span>
-                Signing in...
-              </div>
-            )}
-
-            <div className={`w-full flex justify-center ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => {
-                  setError('Google Sign-In failed. Please try again.');
-                }}
-                useOneTap
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Username</label>
+              <input
+                type="text"
+                name="username"
+                value={form.username}
+                onChange={handleChange}
+                required
               />
             </div>
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
 
           <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 text-center">
             <p className="text-xs text-slate-400">Only authorized users can access the portal.</p>
