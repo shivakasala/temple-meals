@@ -462,7 +462,7 @@ export default function UserDashboard() {
     <div className="space-y-6 max-w-2xl mx-auto">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Book Your Prasadam</h1>
+        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Book Your Meal</h1>
         <p className="text-slate-500 text-sm mt-1">Manage your daily meal requests with ease</p>
       </div>
 
@@ -564,11 +564,11 @@ export default function UserDashboard() {
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-saffron-600 mb-0.5">9:00 AM Prasadam</p>
+                  <p className="text-xs text-saffron-600 mb-0.5">9:00 AM Meal</p>
                   <p className="text-xl font-bold text-saffron-800">₹{rates.morningRate}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-saffron-600 mb-0.5">4:30 PM Prasadam</p>
+                  <p className="text-xs text-saffron-600 mb-0.5">4:30 PM Meal</p>
                   <p className="text-xl font-bold text-saffron-800">₹{rates.eveningRate}</p>
                 </div>
               </div>
@@ -698,7 +698,7 @@ export default function UserDashboard() {
                   <span className="w-5 h-5 rounded-full bg-saffron-500 text-white flex items-center justify-center text-[10px] font-bold">
                     4
                   </span>
-                  Prasadam Category
+                  Meal Category
                 </legend>
                 <div className="grid grid-cols-2 gap-3">
                   {[
@@ -859,7 +859,7 @@ export default function UserDashboard() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              9:00 AM Prasadam
+              9:00 AM Meal
             </label>
             <input
               type="number"
@@ -871,7 +871,7 @@ export default function UserDashboard() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              4:30 PM Prasadam
+              4:30 PM Meal
             </label>
             <input
               type="number"
